@@ -48,8 +48,9 @@ public:
 
   template <class Fn, class... Args>
   void SetReadCallback(Fn &&fn, Args &&...args) {
-    read_callback =
-        std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...);
+    read_callback = std::bind(std::forward<Fn>(fn),
+                              std::forward<Args>(args)...,
+                              std::placeholders::_1);
   }
 
   template <class Fn, class... Args>
