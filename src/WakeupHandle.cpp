@@ -1,7 +1,10 @@
 #include "eveio/WakeupHandle.hpp"
 #include "eveio/Handle.hpp"
 
+#include <spdlog/spdlog.h>
+
 #include <cassert>
+#include <cstdlib>
 
 using eveio::Result;
 using eveio::WakeupHandle;
@@ -24,6 +27,20 @@ static void SetNonblock(eveio::Handle h) noexcept {
   assert(old_flag >= 0);
   old_flag |= O_NONBLOCK;
   ::fcntl(h, F_SETFL, old_flag);
+}
+
+eveio::WakeupHandle::WakeupHandle() noexcept {
+  int p[2]{};
+  if (::pipe(p) < 0) {
+    SPDLOG_CRITICAL("failed to create pipe: {}.", std::strerror(errno));
+    std::abort();
+  }
+  fd[0] = p[0];
+  fd[1] = p[1];
+  SetNonblock(fd[0]);
+  SetCloexec(fd[0]);
+  SetNonblock(fd[1]);
+  SetCloexec(fd[1]);
 }
 
 eveio::WakeupHandle::WakeupHandle(eveio::Handle _0, eveio::Handle _1) noexcept

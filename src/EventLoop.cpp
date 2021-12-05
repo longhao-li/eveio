@@ -27,15 +27,6 @@ eveio::EventLoop::EventLoop() noexcept
     LoopInCurrentThread = this;
   }
 
-  { // create wakeup handle
-    auto wakeup_handle_res = WakeupHandle::Create();
-    if (!wakeup_handle_res.IsValid()) {
-      SPDLOG_CRITICAL("Failed to create wakeup handle: {}. Abort.",
-                      wakeup_handle_res.GetError());
-      std::abort();
-    }
-    wakeup_handle = wakeup_handle_res.GetValue();
-  }
   wakeup_channel =
       std::make_unique<Channel>(*this, wakeup_handle.ListenHandle());
   wakeup_channel->SetReadCallback([this]() { this->wakeup_handle.Respond(); });
