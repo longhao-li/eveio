@@ -3,8 +3,8 @@
 
 #include <spdlog/spdlog.h>
 
-using eveio::Result;
-using eveio::net::TcpConnection;
+using namespace eveio;
+using namespace eveio::net;
 
 Result<TcpConnection>
 eveio::net::TcpConnection::Connect(const InetAddr &peer) noexcept {

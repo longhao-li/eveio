@@ -10,8 +10,8 @@
 #include <cstdlib>
 #include <utility>
 
-using eveio::EventLoop;
-using eveio::net::TcpConnection;
+using namespace eveio;
+using namespace eveio::net;
 
 eveio::net::AsyncTcpConnection::AsyncTcpConnection(
     EventLoop &loop, TcpConnection &&connect) noexcept

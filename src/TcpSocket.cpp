@@ -9,9 +9,8 @@
 #include <cerrno>
 #include <cstring>
 
-using eveio::Result;
-using eveio::net::TcpConnection;
-using eveio::net::TcpSocket;
+using namespace eveio;
+using namespace eveio::net;
 
 Result<TcpSocket> eveio::net::TcpSocket::Create(const InetAddr &addr) noexcept {
   native_socket_type sock = detail::socket(addr.GetFamily(), SOCK_STREAM, 0);
@@ -32,8 +31,7 @@ eveio::net::TcpSocket::TcpSocket(TcpSocket &&other) noexcept
   other.sock = InvalidSocket;
 }
 
-eveio::net::TcpSocket &
-eveio::net::TcpSocket::operator=(TcpSocket &&other) noexcept {
+TcpSocket &eveio::net::TcpSocket::operator=(TcpSocket &&other) noexcept {
   if (sock != InvalidSocket)
     detail::close_socket(sock);
 

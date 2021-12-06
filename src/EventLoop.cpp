@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cstdlib>
 
+using namespace eveio;
+
 static thread_local eveio::EventLoop *LoopInCurrentThread = nullptr;
 
 eveio::EventLoop::EventLoop() noexcept
@@ -83,6 +85,6 @@ void eveio::EventLoop::DoPendingFunc() noexcept {
     fn();
 }
 
-eveio::EventLoop *eveio::EventLoop::CurrentThreadLoop() noexcept {
+EventLoop *eveio::EventLoop::CurrentThreadLoop() noexcept {
   return LoopInCurrentThread;
 }

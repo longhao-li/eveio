@@ -4,6 +4,8 @@
 
 #include <cstdlib>
 
+using namespace eveio;
+
 eveio::EventLoopThreadPool::EventLoopThreadPool(size_t thread_num) noexcept
     : is_started(false),
       num_thread(thread_num),
@@ -11,15 +13,14 @@ eveio::EventLoopThreadPool::EventLoopThreadPool(size_t thread_num) noexcept
       workers(),
       loops() {}
 
-eveio::EventLoop *eveio::EventLoopThreadPool::GetNextLoop() noexcept {
+EventLoop *eveio::EventLoopThreadPool::GetNextLoop() noexcept {
   if (is_started.load(std::memory_order_relaxed))
     return loops[next_loop.fetch_add(1, std::memory_order_relaxed) %
                  loops.size()];
   return nullptr;
 }
 
-eveio::Vector<eveio::EventLoop *>
-eveio::EventLoopThreadPool::GetAllLoops() const noexcept {
+Vector<EventLoop *> eveio::EventLoopThreadPool::GetAllLoops() const noexcept {
   return loops;
 }
 

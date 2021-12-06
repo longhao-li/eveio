@@ -1,5 +1,7 @@
 #include "eveio/EventLoopThread.hpp"
 
+using namespace eveio;
+
 eveio::EventLoopThread::EventLoopThread() noexcept
     : loop(nullptr),
       loop_thread(),
@@ -7,7 +9,7 @@ eveio::EventLoopThread::EventLoopThread() noexcept
       cond(new std::condition_variable),
       init_callback() {}
 
-eveio::EventLoopThread::EventLoopThread(eveio::EventLoopThread &&other) noexcept
+eveio::EventLoopThread::EventLoopThread(EventLoopThread &&other) noexcept
     : loop(other.loop),
       loop_thread(std::move(other.loop_thread)),
       mutex(std::move(other.mutex)),
@@ -16,8 +18,8 @@ eveio::EventLoopThread::EventLoopThread(eveio::EventLoopThread &&other) noexcept
   other.loop = nullptr;
 }
 
-eveio::EventLoopThread &
-eveio::EventLoopThread::operator=(eveio::EventLoopThread &&other) noexcept {
+EventLoopThread &
+eveio::EventLoopThread::operator=(EventLoopThread &&other) noexcept {
   loop = other.loop;
   loop_thread = std::move(other.loop_thread);
   mutex = std::move(other.mutex);
@@ -34,8 +36,8 @@ eveio::EventLoopThread::~EventLoopThread() noexcept {
   }
 }
 
-eveio::EventLoop *eveio::EventLoopThread::StartLoop() noexcept {
-  loop_thread = std::thread(std::bind(&eveio::EventLoopThread::Task, this));
+EventLoop *eveio::EventLoopThread::StartLoop() noexcept {
+  loop_thread = std::thread(std::bind(&EventLoopThread::Task, this));
   std::unique_lock<std::mutex> lock(*mutex);
   cond->wait(lock, [this]() -> bool { return this->loop != nullptr; });
   return loop;

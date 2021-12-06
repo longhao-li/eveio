@@ -4,6 +4,9 @@
 #include <cerrno>
 #include <cstring>
 
+using namespace eveio;
+using namespace eveio::net;
+
 static constexpr const int DefaultBufSize = 65536;
 
 void eveio::net::Buffer::Append(const void *data, size_t byte) noexcept {

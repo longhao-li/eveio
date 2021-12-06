@@ -9,9 +9,8 @@
 #include <cassert>
 #include <cstdlib>
 
-using eveio::EventLoop;
-using eveio::net::Acceptor;
-using eveio::net::TcpSocket;
+using namespace eveio;
+using namespace eveio::net;
 
 eveio::net::Acceptor::Acceptor(EventLoop &loop,
                                TcpSocket &&socket,

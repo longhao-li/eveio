@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <cstring>
 
+using namespace eveio;
+
 #if defined(EVEIO_POLLER_HAS_KQUEUE)
 
 eveio::Poller::Poller() noexcept
@@ -19,7 +21,7 @@ eveio::Poller::Poller() noexcept
 
 eveio::Poller::~Poller() noexcept { Handle::Close(kq_fd); }
 
-eveio::Time eveio::Poller::Poll(Time::Milliseconds timeout,
+Time eveio::Poller::Poll(Time::Milliseconds timeout,
                                 ChannelList &active_channels) noexcept {
   struct timespec time_out {
     .tv_sec = timeout.count() / 1000,

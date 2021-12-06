@@ -8,14 +8,17 @@
 #include <cstring>
 #include <memory>
 
+using namespace eveio;
+using namespace eveio::net;
+
 eveio::net::InetAddr::InetAddr(const struct sockaddr_in &addr) noexcept
     : addr4(addr) {}
 
 eveio::net::InetAddr::InetAddr(const struct sockaddr_in6 &addr) noexcept
     : addr6(addr) {}
 
-eveio::Result<eveio::net::InetAddr>
-eveio::net::InetAddr::Create(StringRef ip, uint16_t port) noexcept {
+Result<InetAddr> eveio::net::InetAddr::Create(StringRef ip,
+                                              uint16_t port) noexcept {
   String ip_str(ip);
 
   InetAddr addr;
@@ -46,7 +49,7 @@ eveio::net::InetAddr::Create(StringRef ip, uint16_t port) noexcept {
   return Result<InetAddr>::Ok(addr);
 }
 
-eveio::String eveio::net::InetAddr::GetIp() const noexcept {
+String eveio::net::InetAddr::GetIp() const noexcept {
   char buf[128]{};
   if (IsIpv4())
     ::inet_ntop(GetFamily(), std::addressof(addr4.sin_addr), buf, sizeof(buf));
@@ -55,7 +58,7 @@ eveio::String eveio::net::InetAddr::GetIp() const noexcept {
   return String(buf);
 }
 
-eveio::String eveio::net::InetAddr::GetIpWithPort() const noexcept {
+String eveio::net::InetAddr::GetIpWithPort() const noexcept {
   if (IsIpv4())
     return String(Format("{}:{}", GetIp(), GetPort()));
   else
@@ -91,8 +94,7 @@ bool eveio::net::InetAddr::operator==(const InetAddr &rhs) const noexcept {
   return false;
 }
 
-eveio::net::InetAddr
-eveio::net::InetAddr::Ipv4Loopback(uint16_t port) noexcept {
+InetAddr eveio::net::InetAddr::Ipv4Loopback(uint16_t port) noexcept {
   InetAddr addr;
   std::memset(&addr.addr6, 0, sizeof(addr.addr6));
   addr.addr4.sin_family = AF_INET;
@@ -101,7 +103,7 @@ eveio::net::InetAddr::Ipv4Loopback(uint16_t port) noexcept {
   return InetAddr(addr);
 }
 
-eveio::net::InetAddr eveio::net::InetAddr::Ipv4Any(uint16_t port) noexcept {
+InetAddr eveio::net::InetAddr::Ipv4Any(uint16_t port) noexcept {
   InetAddr addr;
   std::memset(&addr.addr6, 0, sizeof(addr.addr6));
   addr.addr4.sin_family = AF_INET;
@@ -110,8 +112,7 @@ eveio::net::InetAddr eveio::net::InetAddr::Ipv4Any(uint16_t port) noexcept {
   return InetAddr(addr);
 }
 
-eveio::net::InetAddr
-eveio::net::InetAddr::Ipv6Loopback(uint16_t port) noexcept {
+InetAddr eveio::net::InetAddr::Ipv6Loopback(uint16_t port) noexcept {
   InetAddr addr;
   std::memset(&addr.addr6, 0, sizeof(addr.addr6));
   addr.addr6.sin6_family = AF_INET6;
@@ -120,7 +121,7 @@ eveio::net::InetAddr::Ipv6Loopback(uint16_t port) noexcept {
   return InetAddr(addr);
 }
 
-eveio::net::InetAddr eveio::net::InetAddr::Ipv6Any(uint16_t port) noexcept {
+InetAddr eveio::net::InetAddr::Ipv6Any(uint16_t port) noexcept {
   InetAddr addr;
   std::memset(&addr.addr6, 0, sizeof(addr.addr6));
   addr.addr6.sin6_family = AF_INET6;

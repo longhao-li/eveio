@@ -6,7 +6,9 @@
 
 #include <cassert>
 
-eveio::Channel::Channel(eveio::EventLoop &loop, Handle hd) noexcept
+using namespace eveio;
+
+eveio::Channel::Channel(EventLoop &loop, Handle hd) noexcept
     : loop(&loop),
       handle(hd),
       tied_object(),
