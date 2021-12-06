@@ -75,6 +75,11 @@ public:
 
   Events ListeningEvents() const noexcept { return events_listening; }
 
+  void Tie(std::weak_ptr<void> p) noexcept {
+    is_tied = true;
+    tied_object = p;
+  }
+
   void SetEventsToHandle(Events e) noexcept { events_to_handle = e; }
 
   void AddEventsToHandle(Events e) noexcept { events_to_handle |= e; }
