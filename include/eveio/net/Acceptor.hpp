@@ -2,6 +2,7 @@
 #define EVEIO_NET_ACCEPTOR_HPP
 
 #include "eveio/Channel.hpp"
+#include "eveio/net/InetAddr.hpp"
 #include "eveio/net/TcpConnection.hpp"
 #include "eveio/net/TcpSocket.hpp"
 
@@ -14,10 +15,10 @@ using NewTcpConnectionCallback = std::function<void(TcpConnection &&)>;
 
 class Acceptor {
   EventLoop *loop;
+  bool is_listening;
   TcpSocket accept_socket;
   Channel channel;
   NewTcpConnectionCallback callback;
-  bool is_listening;
 
 public:
   Acceptor(EventLoop &loop, TcpSocket &&socket, bool reuse_port) noexcept;
@@ -30,12 +31,27 @@ public:
 
   ~Acceptor() noexcept;
 
+  template <
+      class Fn,
+      class = std::enable_if_t<std::is_constructible<NewTcpConnectionCallback,
+                                                     std::decay_t<Fn>>::value,
+                               int>>
+  void SetNewConnectionCallback(Fn &&fn) {
+    callback = NewTcpConnectionCallback(std::forward<Fn>(fn));
+  }
+
   template <class Fn, class... Args>
   void SetNewConnectionCallback(Fn &&fn, Args &&...args) {
-    callback = std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...);
+    callback = std::bind(std::forward<Fn>(fn),
+                         std::forward<Args>(args)...,
+                         std::placeholders::_1);
   }
 
   bool IsListening() const noexcept { return is_listening; }
+
+  const InetAddr &LocalAddr() const noexcept {
+    return accept_socket.LocalAddr();
+  }
 
   void Listen() noexcept;
 

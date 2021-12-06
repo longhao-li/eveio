@@ -17,10 +17,10 @@ eveio::net::Acceptor::Acceptor(EventLoop &loop,
                                TcpSocket &&socket,
                                bool reuse_port) noexcept
     : loop(&loop),
+      is_listening(false),
       accept_socket(std::move(socket)),
       channel(loop, accept_socket.native_socket()),
-      callback(),
-      is_listening(false) {
+      callback() {
   if (!accept_socket.SetReuseAddr(true)) {
     SPDLOG_CRITICAL("socket {} failed to set reuse addr. abort.",
                     accept_socket.native_socket());
