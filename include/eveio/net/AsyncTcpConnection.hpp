@@ -71,6 +71,8 @@ public:
 
   ~AsyncTcpConnection() noexcept;
 
+  EventLoop *GetLoop() const noexcept { return loop; };
+
   const InetAddr &PeerAddr() const noexcept { return conn.PeerAddr(); }
 
   void CloseWrite() const noexcept { conn.CloseWrite(); }
