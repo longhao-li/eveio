@@ -36,8 +36,8 @@ public:
 
   bool Listen(int n) const noexcept;
   void CloseWrite() const noexcept;
-  void SetReuseAddr(bool on) const noexcept;
-  void SetReusePort(bool on) const noexcept;
+  bool SetReuseAddr(bool on) const noexcept;
+  bool SetReusePort(bool on) const noexcept;
 
   Result<TcpConnection> Accept() const noexcept;
 

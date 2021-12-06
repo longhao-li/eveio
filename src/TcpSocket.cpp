@@ -59,18 +59,24 @@ void eveio::net::TcpSocket::CloseWrite() const noexcept {
                  std::strerror(errno));
 }
 
-void eveio::net::TcpSocket::SetReuseAddr(bool on) const noexcept {
-  if (!detail::set_reuseaddr(sock, on))
+bool eveio::net::TcpSocket::SetReuseAddr(bool on) const noexcept {
+  if (!detail::set_reuseaddr(sock, on)) {
     SPDLOG_ERROR("failed to set socket reuse addr for {}: {}.",
                  sock,
                  std::strerror(errno));
+    return false;
+  }
+  return true;
 }
 
-void eveio::net::TcpSocket::SetReusePort(bool on) const noexcept {
-  if (!detail::set_reuseport(sock, on))
+bool eveio::net::TcpSocket::SetReusePort(bool on) const noexcept {
+  if (!detail::set_reuseport(sock, on)) {
     SPDLOG_ERROR("failed to set socket reuse port for {}: {}.",
                  sock,
                  std::strerror(errno));
+    return false;
+  }
+  return true;
 }
 
 Result<TcpConnection> eveio::net::TcpSocket::Accept() const noexcept {
