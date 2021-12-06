@@ -15,7 +15,8 @@ using namespace eveio::net;
 
 eveio::net::AsyncTcpConnection::AsyncTcpConnection(
     EventLoop &loop, TcpConnection &&connect) noexcept
-    : guard_self(),
+    : std::enable_shared_from_this<AsyncTcpConnection>(),
+      guard_self(),
       loop(&loop),
       conn(std::move(connect)),
       channel(loop, conn.native_socket()),
@@ -36,11 +37,11 @@ eveio::net::AsyncTcpConnection::~AsyncTcpConnection() noexcept {
 
 void eveio::net::AsyncTcpConnection::Initialize() noexcept {
   if (!conn.SetNonblock(true)) {
-    SPDLOG_CRITICAL(
-        "failed to set connection {} nonblock with peer address: {}. Abort.",
-        conn.native_socket(),
-        PeerAddr().GetIpWithPort());
-    std::abort();
+    // SPDLOG_CRITICAL(
+    //     "failed to set connection {} nonblock with peer address: {}. Abort.",
+    //     conn.native_socket(),
+    //     PeerAddr().GetIpWithPort());
+    // std::abort();
   }
 
   guard_self = shared_from_this();
@@ -58,6 +59,7 @@ void eveio::net::AsyncTcpConnection::AsyncSend(StringRef data) noexcept {
 void eveio::net::AsyncTcpConnection::AsyncSend(const void *buf,
                                                size_t byte) noexcept {
   if (loop->IsInLoopThread()) {
+    this->write_buffer.Append(buf, byte);
     SendInLoop();
   } else {
     String data(static_cast<const char *>(buf), byte);

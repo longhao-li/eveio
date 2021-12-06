@@ -62,7 +62,7 @@ public:
   template <class Fn, class... Args>
   void RunInLoop(Fn &&fn, Args &&...args) {
     if (IsInLoopThread()) {
-      fn(std::forward<Args>(args)...);
+      std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...)();
     } else {
       QueueInLoop(std::forward<Fn>(fn), std::forward<Args>(args)...);
       WakeUp();

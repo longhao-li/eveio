@@ -26,7 +26,8 @@ using TcpCloseCallback =
 using TcpConnectionCallback =
     std::function<void(std::shared_ptr<AsyncTcpConnection>)>;
 
-class AsyncTcpConnection : std::enable_shared_from_this<AsyncTcpConnection> {
+class AsyncTcpConnection
+    : public std::enable_shared_from_this<AsyncTcpConnection> {
   std::shared_ptr<AsyncTcpConnection> guard_self;
   EventLoop *const loop;
 
@@ -46,8 +47,6 @@ private:
   /// allow TcpServer to call the following private methods
   friend class TcpServer;
 
-  AsyncTcpConnection(EventLoop &loop, TcpConnection &&connect) noexcept;
-
   void Initialize() noexcept;
 
   void SetMessageCallback(const TcpMessageCallback &cb) noexcept {
@@ -63,6 +62,8 @@ private:
   }
 
 public:
+  AsyncTcpConnection(EventLoop &loop, TcpConnection &&connect) noexcept;
+
   AsyncTcpConnection(const AsyncTcpConnection &) = delete;
   AsyncTcpConnection &operator=(const AsyncTcpConnection &) = delete;
 

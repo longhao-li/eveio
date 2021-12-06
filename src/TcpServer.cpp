@@ -45,9 +45,8 @@ void eveio::net::TcpServer::Start() noexcept {
         *loop, std::move(sock_res.GetValue()), reuse_port);
 
     acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
-      auto async_conn =
-          std::shared_ptr<AsyncTcpConnection>(new AsyncTcpConnection(
-              *this->io_context->GetNextLoop(), std::move(conn)));
+      auto async_conn = std::make_shared<AsyncTcpConnection>(
+          *(this->io_context->GetNextLoop()), std::move(conn));
       async_conn->Initialize();
 
       if (this->message_callback)
@@ -60,6 +59,9 @@ void eveio::net::TcpServer::Start() noexcept {
         connection_callback(async_conn);
     });
 
-    acceptor->Listen();
+    {
+      auto p = acceptor.get();
+      loop->RunInLoop([p]() { p->Listen(); });
+    }
   }
 }

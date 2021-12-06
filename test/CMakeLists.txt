@@ -8,3 +8,6 @@ target_link_libraries(
   ${GTEST_MAIN_LIBRARIES}
 )
 add_test(NAME eveio_unittest COMMAND eveio_unittest)
+
+add_executable(eveio_EchoServer EchoServer.cpp)
+target_link_libraries(eveio_EchoServer eveio)

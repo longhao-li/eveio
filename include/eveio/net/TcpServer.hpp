@@ -71,7 +71,9 @@ public:
   void SetMessageCallback(Fn &&fn, Args &&...args) {
     message_callback = std::bind(std::forward<Fn>(fn),
                                  std::forward<Args>(args)...,
-                                 std::placeholders::_1);
+                                 std::placeholders::_1,
+                                 std::placeholders::_2,
+                                 std::placeholders::_3);
   }
 
   template <
