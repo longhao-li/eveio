@@ -39,7 +39,7 @@ public:
   void SetReuseAddr(bool on) const noexcept;
   void SetReusePort(bool on) const noexcept;
 
-  Result<TcpConnection, const char *> Accept() const noexcept;
+  Result<TcpConnection> Accept() const noexcept;
 
   const InetAddr &LocalAddr() const noexcept { return local_addr; }
 
