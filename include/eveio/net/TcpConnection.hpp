@@ -17,11 +17,11 @@ public:
 
 private:
   native_socket_type conn_handle;
-  Time create_time;
   InetAddr peer_addr;
+  Time create_time;
 
   TcpConnection(native_socket_type conn, const InetAddr &addr) noexcept
-      : conn_handle(conn), create_time(Time::Now()), peer_addr(addr) {}
+      : conn_handle(conn), peer_addr(addr), create_time(Time::Now()) {}
 
 public:
   static Result<TcpConnection> Connect(const InetAddr &peer) noexcept;
