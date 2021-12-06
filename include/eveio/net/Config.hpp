@@ -7,7 +7,10 @@
 #  include <Ws2tcpip.h>
 #else
 #  include <arpa/inet.h>
+#  include <fcntl.h>
 #  include <netinet/in.h>
+#  include <netinet/tcp.h>
+#  include <unistd.h>
 #endif
 
 #endif // EVEIO_NET_CONFIG_HPP
