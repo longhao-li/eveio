@@ -35,10 +35,7 @@ public:
     return reinterpret_cast<const T *>(&storage[0] + head);
   }
 
-  void Clear() noexcept {
-    storage.shrink_to_fit();
-    head = tail = 0;
-  }
+  void Clear() noexcept { head = tail = 0; }
 
   size_t Size() const noexcept { return (tail - head); }
 
@@ -52,7 +49,15 @@ public:
       Clear();
   }
 
+  String RetrieveAsString() noexcept {
+    String str(Data<char>(), Size());
+    Clear();
+    return str;
+  }
+
   void Append(const void *data, size_t byte) noexcept;
+
+  void Append(StringRef data) noexcept { Append(data.data(), data.size()); }
 
   // For internal usage. Do not call outside.
   int ReadFromSocket(detail::native_socket_type sock) noexcept;
