@@ -26,8 +26,7 @@ public:
   InetAddr &operator=(const InetAddr &) noexcept = default;
   ~InetAddr() noexcept = default;
 
-  static Result<InetAddr, const char *> Create(StringRef ip,
-                                               uint16_t port) noexcept;
+  static Result<InetAddr> Create(StringRef ip, uint16_t port) noexcept;
 
   String GetIp() const noexcept;
   String GetIpWithPort() const noexcept;

@@ -14,7 +14,7 @@ eveio::net::InetAddr::InetAddr(const struct sockaddr_in &addr) noexcept
 eveio::net::InetAddr::InetAddr(const struct sockaddr_in6 &addr) noexcept
     : addr6(addr) {}
 
-eveio::Result<eveio::net::InetAddr, const char *>
+eveio::Result<eveio::net::InetAddr>
 eveio::net::InetAddr::Create(StringRef ip, uint16_t port) noexcept {
   String ip_str(ip);
 
@@ -42,8 +42,8 @@ eveio::net::InetAddr::Create(StringRef ip, uint16_t port) noexcept {
   }
 
   if (res != 1)
-    return Result<InetAddr, const char *>::Error("invalid ip address.");
-  return Result<InetAddr, const char *>::Ok(addr);
+    return Result<InetAddr>::Error("invalid ip address.");
+  return Result<InetAddr>::Ok(addr);
 }
 
 eveio::String eveio::net::InetAddr::GetIp() const noexcept {

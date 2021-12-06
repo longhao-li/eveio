@@ -18,7 +18,7 @@ class WakeupHandle {
 
 public:
   WakeupHandle() noexcept;
-  static Result<WakeupHandle, const char *> Create() noexcept;
+  static Result<WakeupHandle> Create() noexcept;
   static bool Close(WakeupHandle handle) noexcept;
 
   WakeupHandle(const WakeupHandle &) noexcept = default;
