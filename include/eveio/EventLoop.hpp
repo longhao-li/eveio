@@ -3,18 +3,18 @@
 
 #include "eveio/Channel.hpp"
 #include "eveio/Poller.hpp"
+#include "eveio/Vector.hpp"
 #include "eveio/WakeupHandle.hpp"
 
 #include <atomic>
 #include <functional>
 #include <mutex>
 #include <thread>
-#include <vector>
 
 namespace eveio {
 
 class EventLoop {
-  typedef std::vector<Channel *> ChannelList;
+  typedef Vector<Channel *> ChannelList;
 
   Poller poller;
 
@@ -31,7 +31,7 @@ class EventLoop {
   ChannelList active_channels;
 
   mutable std::mutex mutex;
-  std::vector<std::function<void()>> pending_func;
+  Vector<std::function<void()>> pending_func;
 
 public:
   EventLoop() noexcept;

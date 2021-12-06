@@ -41,6 +41,7 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(Threads REQUIRED)
 find_package(GTest REQUIRED)
+find_package(mimalloc REQUIRED)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)

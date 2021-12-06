@@ -22,7 +22,7 @@ eveio::EventLoop *eveio::EventLoopThreadPool::GetNextLoop() noexcept {
   return nullptr;
 }
 
-std::vector<eveio::EventLoop *>
+eveio::Vector<eveio::EventLoop *>
 eveio::EventLoopThreadPool::GetAllLoops() const noexcept {
   return loops;
 }

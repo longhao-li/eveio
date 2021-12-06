@@ -73,7 +73,7 @@ void eveio::EventLoop::Quit() noexcept {
 }
 
 void eveio::EventLoop::DoPendingFunc() noexcept {
-  std::vector<std::function<void()>> funcs;
+  Vector<std::function<void()>> funcs;
   {
     std::lock_guard<std::mutex> lock(mutex);
     pending_func.swap(funcs);

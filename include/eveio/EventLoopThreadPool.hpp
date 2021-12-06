@@ -2,11 +2,11 @@
 #define EVEIO_EVENTLOOP_THREADPOOL_HPP
 
 #include "eveio/EventLoopThread.hpp"
+#include "eveio/Vector.hpp"
 
 #include <atomic>
 #include <cassert>
 #include <mutex>
-#include <vector>
 
 namespace eveio {
 
@@ -14,8 +14,8 @@ class EventLoopThreadPool {
   std::atomic_bool is_started;
   size_t num_thread;
   size_t next_loop;
-  std::vector<EventLoopThread> workers;
-  std::vector<EventLoop *> loops;
+  Vector<EventLoopThread> workers;
+  Vector<EventLoop *> loops;
   mutable std::mutex mutex;
 
 public:
@@ -31,7 +31,7 @@ public:
   ~EventLoopThreadPool() noexcept = default;
 
   EventLoop *GetNextLoop() noexcept;
-  std::vector<EventLoop *> GetAllLoops() const noexcept;
+  Vector<EventLoop *> GetAllLoops() const noexcept;
 
   void SetThreadNum(size_t num) noexcept { num_thread = num; }
 

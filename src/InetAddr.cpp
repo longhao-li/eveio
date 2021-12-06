@@ -1,5 +1,6 @@
 #include "eveio/net/InetAddr.hpp"
 #include "eveio/Result.hpp"
+#include "eveio/String.hpp"
 
 #include <fmt/format.h>
 
@@ -14,8 +15,8 @@ eveio::net::InetAddr::InetAddr(const struct sockaddr_in6 &addr) noexcept
     : addr6(addr) {}
 
 eveio::Result<eveio::net::InetAddr, const char *>
-eveio::net::InetAddr::Create(std::string_view ip, uint16_t port) noexcept {
-  std::string ip_str(ip);
+eveio::net::InetAddr::Create(StringRef ip, uint16_t port) noexcept {
+  String ip_str(ip);
 
   InetAddr addr;
   std::memset(&addr.addr6, 0, sizeof(addr.addr6));
@@ -45,20 +46,20 @@ eveio::net::InetAddr::Create(std::string_view ip, uint16_t port) noexcept {
   return Result<InetAddr, const char *>::Ok(addr);
 }
 
-std::string eveio::net::InetAddr::GetIp() const noexcept {
+eveio::String eveio::net::InetAddr::GetIp() const noexcept {
   char buf[128]{};
   if (IsIpv4())
     ::inet_ntop(GetFamily(), std::addressof(addr4.sin_addr), buf, sizeof(buf));
   else
     ::inet_ntop(GetFamily(), std::addressof(addr6.sin6_addr), buf, sizeof(buf));
-  return std::string(buf);
+  return String(buf);
 }
 
-std::string eveio::net::InetAddr::GetIpWithPort() const noexcept {
+eveio::String eveio::net::InetAddr::GetIpWithPort() const noexcept {
   if (IsIpv4())
-    return fmt::format("{}:{}", GetIp(), GetPort());
+    return String(fmt::format("{}:{}", GetIp(), GetPort()));
   else
-    return fmt::format("[{}]:{}", GetIp(), GetPort());
+    return String(fmt::format("[{}]:{}", GetIp(), GetPort()));
 }
 
 uint16_t eveio::net::InetAddr::GetPort() const noexcept {

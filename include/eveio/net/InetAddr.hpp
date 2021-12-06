@@ -2,11 +2,10 @@
 #define EVEIO_NET_INETADDR_HPP
 
 #include "eveio/Result.hpp"
+#include "eveio/String.hpp"
 #include "eveio/net/Config.hpp"
 
 #include <cstdint>
-#include <string>
-#include <string_view>
 
 namespace eveio {
 namespace net {
@@ -27,11 +26,11 @@ public:
   InetAddr &operator=(const InetAddr &) noexcept = default;
   ~InetAddr() noexcept = default;
 
-  static Result<InetAddr, const char *> Create(std::string_view ip,
+  static Result<InetAddr, const char *> Create(StringRef ip,
                                                uint16_t port) noexcept;
 
-  std::string GetIp() const noexcept;
-  std::string GetIpWithPort() const noexcept;
+  String GetIp() const noexcept;
+  String GetIpWithPort() const noexcept;
 
   uint16_t GetPort() const noexcept;
   void SetPort(uint16_t port) noexcept;

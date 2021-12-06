@@ -3,9 +3,8 @@
 
 #include "eveio/Channel.hpp"
 #include "eveio/Event.hpp"
-
-#include <map>
-#include <vector>
+#include "eveio/Map.hpp"
+#include "eveio/Vector.hpp"
 
 namespace eveio {
 namespace detail {
@@ -13,10 +12,10 @@ namespace detail {
 template <class T>
 class PollerBase {
 protected:
-  std::map<Handle, Channel *> channels;
+  Map<Handle, Channel *> channels;
 
 public:
-  typedef std::vector<Channel *> ChannelList;
+  typedef Vector<Channel *> ChannelList;
 
   PollerBase() noexcept = default;
 
@@ -61,7 +60,7 @@ namespace eveio {
 
 class Poller : public detail::PollerBase<Poller> {
   Handle kq_fd;
-  std::vector<struct kevent> events;
+  Vector<struct kevent> events;
 
 public:
   Poller() noexcept;

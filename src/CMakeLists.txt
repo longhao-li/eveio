@@ -6,5 +6,6 @@ target_link_libraries(
   eveio
   spdlog::spdlog
   fmt::fmt
+  mimalloc
   ${CMAKE_THREAD_LIBS_INIT}
 )
