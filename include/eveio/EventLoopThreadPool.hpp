@@ -6,17 +6,15 @@
 
 #include <atomic>
 #include <cassert>
-#include <mutex>
 
 namespace eveio {
 
 class EventLoopThreadPool {
   std::atomic_bool is_started;
   size_t num_thread;
-  size_t next_loop;
+  std::atomic_size_t next_loop;
   Vector<EventLoopThread> workers;
   Vector<EventLoop *> loops;
-  mutable std::mutex mutex;
 
 public:
   EventLoopThreadPool(

@@ -9,16 +9,12 @@ eveio::EventLoopThreadPool::EventLoopThreadPool(size_t thread_num) noexcept
       num_thread(thread_num),
       next_loop(0),
       workers(),
-      loops(),
-      mutex() {}
+      loops() {}
 
 eveio::EventLoop *eveio::EventLoopThreadPool::GetNextLoop() noexcept {
-  if (is_started.load(std::memory_order_relaxed)) {
-    std::lock_guard<std::mutex> lock(mutex);
-    EventLoop *res = loops[next_loop];
-    next_loop = (next_loop + 1) % loops.size();
-    return res;
-  }
+  if (is_started.load(std::memory_order_relaxed))
+    return loops[next_loop.fetch_add(1, std::memory_order_relaxed) %
+                 loops.size()];
   return nullptr;
 }
 
