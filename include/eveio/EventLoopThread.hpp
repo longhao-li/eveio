@@ -27,8 +27,9 @@ public:
         loop_thread(),
         mutex(new std::mutex),
         cond(new std::condition_variable),
-        init_callback(
-            std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...)) {}
+        init_callback(std::bind(std::forward<Fn>(fn),
+                                std::forward<Args>(args)...,
+                                std::placeholders::_1)) {}
 
   EventLoopThread(const EventLoopThread &) = delete;
   EventLoopThread &operator=(const EventLoopThread &) = delete;
