@@ -2,7 +2,7 @@
 #include "eveio/Result.hpp"
 #include "eveio/String.hpp"
 
-#include <fmt/format.h>
+#include "eveio/Format.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -57,9 +57,9 @@ eveio::String eveio::net::InetAddr::GetIp() const noexcept {
 
 eveio::String eveio::net::InetAddr::GetIpWithPort() const noexcept {
   if (IsIpv4())
-    return String(fmt::format("{}:{}", GetIp(), GetPort()));
+    return String(Format("{}:{}", GetIp(), GetPort()));
   else
-    return String(fmt::format("[{}]:{}", GetIp(), GetPort()));
+    return String(Format("[{}]:{}", GetIp(), GetPort()));
 }
 
 uint16_t eveio::net::InetAddr::GetPort() const noexcept {
