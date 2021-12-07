@@ -47,6 +47,7 @@ public:
   bool SetNoDelay(bool on) const noexcept;
   bool SetNonblock(bool on) const noexcept;
   bool SetKeepAlive(bool on) const noexcept;
+  bool SetNoSigPipe(bool on) const noexcept;
 
   native_socket_type native_socket() const noexcept { return conn_handle; }
   operator native_socket_type() const noexcept { return conn_handle; }

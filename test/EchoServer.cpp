@@ -6,10 +6,14 @@
 #include "eveio/net/InetAddr.hpp"
 #include "eveio/net/TcpServer.hpp"
 
+#include <fmt/ostream.h>
+
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
 
 #include <cstdlib>
 #include <memory>
+#include <thread>
 
 using namespace eveio;
 using namespace eveio::net;
@@ -33,17 +37,16 @@ public:
   void Start() noexcept { server.Start(); }
 
 private:
-  void OnConnection(std::shared_ptr<AsyncTcpConnection> conn) noexcept {
-    SPDLOG_INFO("{} -> {} is {}.",
+  void OnConnection(AsyncTcpConnection *conn) noexcept {
+    SPDLOG_INFO("{} -> {} is {}. socket: {}.",
                 conn->PeerAddr().GetIpWithPort(),
                 server.LocalAddr().GetIpWithPort(),
-                conn->IsClosed() ? "down" : "up");
+                conn->IsClosed() ? "down" : "up",
+                conn->native_socket());
     conn->AsyncSend("Hello\n");
   }
 
-  void OnMessage(std::shared_ptr<AsyncTcpConnection> conn,
-                 Buffer &buf,
-                 Time time) noexcept {
+  void OnMessage(AsyncTcpConnection *conn, Buffer &buf, Time time) noexcept {
     String msg(buf.RetrieveAsString());
     SPDLOG_INFO("{} sent {} bytes at {}.",
                 conn->PeerAddr().GetIpWithPort(),
@@ -60,19 +63,24 @@ private:
     conn->AsyncSend(msg);
   }
 
-  void OnClose(std::shared_ptr<AsyncTcpConnection> conn) noexcept {
-    SPDLOG_INFO("Connection with {} is closing.",
-                conn->PeerAddr().GetIpWithPort());
+  void OnClose(AsyncTcpConnection *conn) noexcept {
+    // SPDLOG_INFO("Connection with {} is closing.",
+    //             conn->PeerAddr().GetIpWithPort());
   }
 };
 
 int main(int argc, char *argv[]) {
-  SPDLOG_INFO("sizeof AsyncTcpConnection: {}.", sizeof(AsyncTcpConnection));
+  SPDLOG_INFO("sizeof AsyncTcpConnection: {}. tid: {}.",
+              sizeof(AsyncTcpConnection),
+              std::this_thread::get_id());
   if (argc > 1)
     NumThread = atoi(argv[1]);
+
   EventLoop loop;
   InetAddr addr = InetAddr::Ipv4Any(2000);
   EventLoopThreadPool io_context;
+  if (NumThread > 0)
+    io_context.SetThreadNum(NumThread);
   EchoServer server(loop, io_context, addr);
   server.Start();
   loop.Loop();

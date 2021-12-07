@@ -56,7 +56,7 @@ void eveio::net::TcpServer::Start() noexcept {
       if (this->close_callback)
         async_conn->SetCloseCallback(this->close_callback);
       if (connection_callback)
-        connection_callback(async_conn);
+        connection_callback(async_conn.get());
     });
 
     {

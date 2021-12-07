@@ -23,12 +23,13 @@ private:
 
   std::weak_ptr<void> tied_object;
   bool is_tied;
+  bool is_handling_event;
+  bool is_added_to_loop;
 
   Events events_listening;
   Events events_to_handle;
 
-  bool is_handling_event;
-  bool is_added_to_loop;
+  int32_t poll_state;
 
   ReadEventCallback read_callback;
   EventCallback write_callback;
@@ -83,6 +84,10 @@ public:
   void SetEventsToHandle(Events e) noexcept { events_to_handle = e; }
 
   void AddEventsToHandle(Events e) noexcept { events_to_handle |= e; }
+
+  uint32_t GetPollState() const noexcept { return poll_state; }
+
+  void SetPollState(uint32_t state) noexcept { poll_state = state; }
 
   bool IsNoneEvent() const noexcept {
     return events_listening == event::NoneEvent;

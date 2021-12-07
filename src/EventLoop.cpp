@@ -81,7 +81,7 @@ void eveio::EventLoop::DoPendingFunc() noexcept {
     pending_func.swap(funcs);
   }
 
-  for (const auto &fn : funcs)
+  for (auto &&fn : funcs)
     fn();
 }
 

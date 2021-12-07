@@ -60,7 +60,7 @@ public:
   void Append(StringRef data) noexcept { Append(data.data(), data.size()); }
 
   // For internal usage. Do not call outside.
-  int ReadFromSocket(detail::native_socket_type sock) noexcept;
+  bool ReadFromSocket(detail::native_socket_type sock, int &tot_read) noexcept;
 };
 
 } // namespace net

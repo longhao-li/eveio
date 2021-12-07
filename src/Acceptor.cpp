@@ -32,6 +32,12 @@ eveio::net::Acceptor::Acceptor(EventLoop &loop,
     std::abort();
   }
 
+  if (!accept_socket.SetNonblock(true)) {
+    SPDLOG_CRITICAL("socket {} failed to set nonblock. abort.",
+                    accept_socket.native_socket());
+    std::abort();
+  }
+
   channel.SetReadCallback(&Acceptor::HandleRead, this);
 }
 
@@ -45,7 +51,7 @@ void eveio::net::Acceptor::Listen() noexcept {
                     accept_socket.native_socket());
     std::abort();
   }
-  channel.EnableReading();
+  loop->RunInLoop(&Channel::EnableReading, &channel);
 }
 
 void eveio::net::Acceptor::HandleRead(Time) noexcept {

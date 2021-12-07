@@ -6,6 +6,7 @@
 #include "eveio/String.hpp"
 #include "eveio/net/Buffer.hpp"
 #include "eveio/net/InetAddr.hpp"
+#include "eveio/net/Socket.hpp"
 #include "eveio/net/TcpConnection.hpp"
 
 #include <atomic>
@@ -18,13 +19,10 @@ namespace net {
 class AsyncTcpConnection;
 
 using TcpMessageCallback =
-    std::function<void(std::shared_ptr<AsyncTcpConnection>, Buffer &, Time)>;
-using TcpWriteCompleteCallback =
-    std::function<void(std::shared_ptr<AsyncTcpConnection>)>;
-using TcpCloseCallback =
-    std::function<void(std::shared_ptr<AsyncTcpConnection>)>;
-using TcpConnectionCallback =
-    std::function<void(std::shared_ptr<AsyncTcpConnection>)>;
+    std::function<void(AsyncTcpConnection *, Buffer &, Time)>;
+using TcpWriteCompleteCallback = std::function<void(AsyncTcpConnection *)>;
+using TcpCloseCallback = std::function<void(AsyncTcpConnection *)>;
+using TcpConnectionCallback = std::function<void(AsyncTcpConnection *)>;
 
 class AsyncTcpConnection
     : public std::enable_shared_from_this<AsyncTcpConnection> {
@@ -42,6 +40,7 @@ class AsyncTcpConnection
   TcpCloseCallback close_callback;
 
   std::atomic_bool is_exiting;
+  std::atomic_bool close_cb_called;
 
 public:
   // for internal usage
@@ -60,6 +59,8 @@ public:
   }
 
 public:
+  typedef detail::native_socket_type native_socket_type;
+
   AsyncTcpConnection(EventLoop &loop, TcpConnection &&connect) noexcept;
 
   AsyncTcpConnection(const AsyncTcpConnection &) = delete;
@@ -84,6 +85,10 @@ public:
   void AsyncSend(const void *buf, size_t byte) noexcept;
 
   void WouldDestroy() noexcept;
+
+  native_socket_type native_socket() const noexcept {
+    return conn.native_socket();
+  }
 
 private:
   void Destroy() noexcept;

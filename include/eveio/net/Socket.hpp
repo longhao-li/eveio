@@ -85,6 +85,11 @@ inline bool set_keepalive(native_socket_type sock, bool on) noexcept {
   return (::setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt)) >= 0);
 }
 
+inline bool set_no_sigpipe(native_socket_type sock, bool on) noexcept {
+  int opt = on ? 1 : 0;
+  return (::setsockopt(sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt)) >= 0);
+}
+
 inline bool close_tcp_write(native_socket_type sock) noexcept {
   return (::shutdown(sock, SHUT_WR) >= 0);
 }

@@ -3,32 +3,48 @@
 #include "eveio/Handle.hpp"
 #include "eveio/Time.hpp"
 
+#include <fmt/ostream.h>
+
 #include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <thread>
 
 using namespace eveio;
 
 #if defined(EVEIO_POLLER_HAS_KQUEUE)
 
+enum {
+  StateInit = Poller::ChannelInitPollState,
+  StateAdded = 1,
+  StateDeleted = 2,
+};
+
+enum {
+  FlagError = EV_ERROR,
+  FlagClose = EV_EOF,
+};
+
 eveio::Poller::Poller() noexcept
     : eveio::detail::PollerBase<Poller>(), kq_fd(::kqueue()), events(16) {
-  assert(kq_fd.native_handle() >= 0);
+  if (kq_fd.native_handle() < 0) {
+    SPDLOG_CRITICAL("failed to create kqueue: {}.", std::strerror(errno));
+    std::abort();
+  }
 }
 
 eveio::Poller::~Poller() noexcept { Handle::Close(kq_fd); }
 
 Time eveio::Poller::Poll(Time::Milliseconds timeout,
-                                ChannelList &active_channels) noexcept {
+                         ChannelList &active_channels) noexcept {
   struct timespec time_out {
-    .tv_sec = timeout.count() / 1000,
-    .tv_nsec = (timeout.count() % 1000) * 1000000
+    timeout.count() / 1000, (timeout.count() % 1000) * 1000000
   };
 
-  int num_events = ::kevent(kq_fd,
+  int num_events = ::kevent(kq_fd.native_handle(),
                             nullptr,
                             0,
                             std::addressof(events[0]),
@@ -52,20 +68,30 @@ Time eveio::Poller::Poll(Time::Milliseconds timeout,
 
 void eveio::Poller::UpdateChannel(Channel &chan) noexcept {
   uint32_t extra_flag = 0;
-  if (channels.find(chan.GetHandle()) == channels.end()) {
-    channels.insert({chan.GetHandle(), &chan});
+  if (chan.GetPollState() == StateInit) {
+    channels.emplace(std::make_pair(chan.GetHandle(), &chan));
     extra_flag = EV_ADD;
   }
 
   Update(event::ReadEvent, extra_flag, chan);
   Update(event::WriteEvent, extra_flag, chan);
+
+  if (chan.IsNoneEvent())
+    chan.SetPollState(StateDeleted);
+  else
+    chan.SetPollState(StateAdded);
 }
 
 void eveio::Poller::RemoveChannel(Channel &chan) noexcept {
-  channels.erase(chan.GetHandle());
+  auto it = channels.find(chan.GetHandle());
+  if (it != channels.end())
+    channels.erase(it);
   chan.DisableAll();
+
   Update(event::ReadEvent, EV_DELETE, chan);
   Update(event::WriteEvent, EV_DELETE, chan);
+
+  chan.SetPollState(StateInit);
 }
 
 void eveio::Poller::Update(uint32_t rw,
@@ -84,7 +110,7 @@ void eveio::Poller::Update(uint32_t rw,
          &chan);
 
   struct timespec timeout {
-    .tv_sec = 0, .tv_nsec = 0
+    0, 0
   };
 
   if (::kevent(kq_fd.native_handle(), &change, 1, nullptr, 0, &timeout) < 0) {
@@ -103,6 +129,8 @@ void eveio::Poller::FillActiveChannels(int num_events,
     Channel *chan = static_cast<Channel *>(events[i].udata);
     assert(chan != nullptr);
 
+    chan->SetEventsToHandle(event::NoneEvent);
+
     if (events[i].filter == EVFILT_READ)
       chan->AddEventsToHandle(event::ReadEvent);
     else if (events[i].filter == EVFILT_WRITE)
@@ -114,7 +142,8 @@ void eveio::Poller::FillActiveChannels(int num_events,
       chan->AddEventsToHandle(event::CloseEvent);
 
     // it is OK to add multi-times actually.
-    active_channels.push_back(chan);
+    if (active_channels.empty() || active_channels.back() != chan)
+      active_channels.push_back(chan);
   }
 }
 

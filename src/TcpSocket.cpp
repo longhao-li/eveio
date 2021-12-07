@@ -57,6 +57,16 @@ void eveio::net::TcpSocket::CloseWrite() const noexcept {
                  std::strerror(errno));
 }
 
+bool eveio::net::TcpSocket::SetNonblock(bool on) const noexcept {
+  if (!detail::set_nonblock(sock, on)) {
+    SPDLOG_ERROR("failed to set socket nonblock for {}: {}.",
+                 sock,
+                 std::strerror(errno));
+    return false;
+  }
+  return true;
+}
+
 bool eveio::net::TcpSocket::SetReuseAddr(bool on) const noexcept {
   if (!detail::set_reuseaddr(sock, on)) {
     SPDLOG_ERROR("failed to set socket reuse addr for {}: {}.",
@@ -79,7 +89,7 @@ bool eveio::net::TcpSocket::SetReusePort(bool on) const noexcept {
 
 Result<TcpConnection> eveio::net::TcpSocket::Accept() const noexcept {
   struct sockaddr_in6 addr {};
-  socklen_t len;
+  socklen_t len = sizeof(addr);
 
   native_socket_type conn_sock =
       detail::accept(sock, reinterpret_cast<struct sockaddr *>(&addr), &len);

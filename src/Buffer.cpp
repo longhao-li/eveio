@@ -15,10 +15,11 @@ void eveio::net::Buffer::Append(const void *data, size_t byte) noexcept {
   tail += byte;
 }
 
-int eveio::net::Buffer::ReadFromSocket(
-    detail::native_socket_type sock) noexcept {
+bool eveio::net::Buffer::ReadFromSocket(detail::native_socket_type sock,
+                                        int &tot_read) noexcept {
   char buf[DefaultBufSize]{};
-  int tot_read = 0, byte_read = 0;
+  tot_read = 0;
+  int byte_read = 0;
 
   for (;;) {
     byte_read = detail::socket_read(sock, buf, sizeof(buf));
@@ -28,17 +29,11 @@ int eveio::net::Buffer::ReadFromSocket(
       Append(buf, byte_read);
       tot_read += byte_read;
       if (byte_read < DefaultBufSize)
-        break;
+        return true;
     } else {
-      if (byte_read < 0) {
-        if (saved_errno == ECONNRESET)
-          tot_read = byte_read;
-        else
-          errno = saved_errno;
-      }
-      break;
+      if (byte_read < 0)
+        return false;
+      return true;
     }
   }
-
-  return tot_read;
 }

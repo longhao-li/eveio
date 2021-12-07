@@ -36,6 +36,7 @@ public:
 
   bool Listen(int n) const noexcept;
   void CloseWrite() const noexcept;
+  bool SetNonblock(bool on) const noexcept;
   bool SetReuseAddr(bool on) const noexcept;
   bool SetReusePort(bool on) const noexcept;
 

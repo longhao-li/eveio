@@ -63,6 +63,8 @@ class Poller : public detail::PollerBase<Poller> {
   Vector<struct kevent> events;
 
 public:
+  static constexpr const int32_t ChannelInitPollState = -1;
+
   Poller() noexcept;
   ~Poller() noexcept;
 
