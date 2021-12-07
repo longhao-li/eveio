@@ -43,10 +43,8 @@ class AsyncTcpConnection
 
   std::atomic_bool is_exiting;
 
-private:
-  /// allow TcpServer to call the following private methods
-  friend class TcpServer;
-
+public:
+  // for internal usage
   void Initialize() noexcept;
 
   void SetMessageCallback(const TcpMessageCallback &cb) noexcept {

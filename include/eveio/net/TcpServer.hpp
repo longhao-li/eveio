@@ -14,7 +14,8 @@ namespace eveio {
 namespace net {
 
 class TcpServer {
-  EventLoopThreadPool *io_context;
+  EventLoop *const loop;
+  EventLoopThreadPool *const io_context;
   std::atomic_bool is_started;
   bool reuse_port;
 
@@ -28,7 +29,8 @@ class TcpServer {
   InetAddr local_addr;
 
 public:
-  TcpServer(EventLoopThreadPool &io_context,
+  TcpServer(EventLoop &loop,
+            EventLoopThreadPool &io_context,
             const InetAddr &listen_addr,
             bool reuse_port) noexcept;
 
@@ -41,6 +43,7 @@ public:
   ~TcpServer() noexcept = default;
 
   const InetAddr &LocalAddr() const noexcept { return acceptor->LocalAddr(); }
+  EventLoop *GetLoop() const noexcept { return loop; }
 
   template <
       class Fn,

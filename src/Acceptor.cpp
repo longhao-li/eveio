@@ -56,6 +56,6 @@ void eveio::net::Acceptor::HandleRead(Time) noexcept {
                  accept_socket.native_socket(),
                  conn_res.GetError());
   } else if (callback) {
-    callback(std::move(conn_res.GetValue()));
+    callback(std::move(conn_res.Unwarp()));
   }
 }

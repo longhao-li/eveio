@@ -47,8 +47,36 @@ public:
 
   constexpr bool IsValid() const noexcept { return is_valid; }
 
-  constexpr const T &GetValue() const noexcept { return std::get<T>(value); }
-  constexpr T &GetValue() noexcept { return std::get<T>(value); }
+  constexpr const T &Unwarp() const noexcept { return std::get<T>(value); }
+  constexpr T &Unwarp() noexcept { return std::get<T>(value); }
+
+  constexpr const T &GetOrDefault(const T &default_value) const noexcept {
+    if (IsValid())
+      return Unwarp();
+    else
+      return default_value;
+  }
+
+  constexpr T &GetOrDefault(T &default_value) noexcept {
+    if (IsValid())
+      return Unwarp();
+    else
+      return default_value;
+  }
+
+  constexpr const T &GetOrDefault(T &&default_value) const noexcept {
+    if (IsValid())
+      return Unwarp();
+    else
+      return default_value;
+  }
+
+  constexpr T &GetOrDefault(T &&default_value) noexcept {
+    if (IsValid())
+      return Unwarp();
+    else
+      return default_value;
+  }
 
   constexpr const Err &GetError() const noexcept {
     return std::get<Err>(value);

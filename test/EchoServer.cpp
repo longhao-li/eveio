@@ -1,6 +1,8 @@
 #include "eveio/Channel.hpp"
+#include "eveio/EventLoop.hpp"
 #include "eveio/EventLoopThread.hpp"
 #include "eveio/EventLoopThreadPool.hpp"
+#include "eveio/Result.hpp"
 #include "eveio/net/InetAddr.hpp"
 #include "eveio/net/TcpServer.hpp"
 
@@ -12,8 +14,6 @@
 using namespace eveio;
 using namespace eveio::net;
 
-// used to block main thread.
-static EventLoop *GlobalLoop;
 static int NumThread;
 
 class EchoServer {
@@ -21,9 +21,10 @@ class EchoServer {
   TcpServer server;
 
 public:
-  EchoServer(EventLoopThreadPool &io_context,
+  EchoServer(EventLoop &loop,
+             EventLoopThreadPool &io_context,
              const InetAddr listen_addr) noexcept
-      : io_context(&io_context), server(io_context, listen_addr, false) {
+      : io_context(&io_context), server(loop, io_context, listen_addr, false) {
     server.SetConnectionCallback(&EchoServer::OnConnection, this);
     server.SetMessageCallback(&EchoServer::OnMessage, this);
     server.SetCloseCallback(&EchoServer::OnClose, this);
@@ -54,7 +55,7 @@ private:
     }
 
     if (msg == "quit\n") {
-      GlobalLoop->Quit();
+      server.GetLoop()->Quit();
     }
     conn->AsyncSend(msg);
   }
@@ -70,10 +71,9 @@ int main(int argc, char *argv[]) {
   if (argc > 1)
     NumThread = atoi(argv[1]);
   EventLoop loop;
-  GlobalLoop = &loop;
   InetAddr addr = InetAddr::Ipv4Any(2000);
   EventLoopThreadPool io_context;
-  EchoServer server(io_context, addr);
+  EchoServer server(loop, io_context, addr);
   server.Start();
-  loop.Loop(); // stupid design.
+  loop.Loop();
 }

@@ -1,4 +1,5 @@
 #include "eveio/net/TcpServer.hpp"
+#include "eveio/EventLoop.hpp"
 #include "eveio/net/Acceptor.hpp"
 #include "eveio/net/AsyncTcpConnection.hpp"
 #include "eveio/net/TcpSocket.hpp"
@@ -13,10 +14,12 @@
 using namespace eveio;
 using namespace eveio::net;
 
-eveio::net::TcpServer::TcpServer(EventLoopThreadPool &io_context,
+eveio::net::TcpServer::TcpServer(EventLoop &loop,
+                                 EventLoopThreadPool &io_context,
                                  const InetAddr &listen_addr,
                                  bool reuse_addr) noexcept
-    : io_context(&io_context),
+    : loop(&loop),
+      io_context(&io_context),
       is_started(false),
       reuse_port(reuse_addr),
       acceptor(),
@@ -38,11 +41,8 @@ void eveio::net::TcpServer::Start() noexcept {
 
     io_context->Start();
 
-    EventLoop *loop = io_context->GetNextLoop();
-    assert(loop != nullptr);
-
     acceptor = std::make_unique<Acceptor>(
-        *loop, std::move(sock_res.GetValue()), reuse_port);
+        *loop, std::move(sock_res.Unwarp()), reuse_port);
 
     acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
       auto async_conn = std::make_shared<AsyncTcpConnection>(
