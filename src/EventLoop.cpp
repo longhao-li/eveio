@@ -31,8 +31,7 @@ eveio::EventLoop::EventLoop() noexcept
     LoopInCurrentThread = this;
   }
 
-  wakeup_channel =
-      std::make_unique<Channel>(*this, wakeup_handle.ListenHandle());
+  wakeup_channel = MakeUnique<Channel>(*this, wakeup_handle.ListenHandle());
   wakeup_channel->SetReadCallback(
       [this](Time) { this->wakeup_handle.Respond(); });
   wakeup_channel->EnableReading();

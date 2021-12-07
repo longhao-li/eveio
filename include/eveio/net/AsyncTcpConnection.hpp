@@ -26,7 +26,7 @@ using TcpConnectionCallback = std::function<void(AsyncTcpConnection *)>;
 
 class AsyncTcpConnection
     : public std::enable_shared_from_this<AsyncTcpConnection> {
-  std::shared_ptr<AsyncTcpConnection> guard_self;
+  SharedPtr<AsyncTcpConnection> guard_self;
   EventLoop *const loop;
 
   TcpConnection conn;

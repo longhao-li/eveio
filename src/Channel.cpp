@@ -46,7 +46,7 @@ void eveio::Channel::HandleEvent(Time recv_time) {
   if (events_to_handle == event::NoneEvent)
     return;
 
-  std::shared_ptr<void> guard;
+  SharedPtr<void> guard;
   if (is_tied) {
     guard = tied_object.lock();
     if (!guard) {

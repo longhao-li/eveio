@@ -2,6 +2,7 @@
 #define EVEIO_EVENTLOOP_THREAD_HPP
 
 #include "eveio/EventLoop.hpp"
+#include "eveio/SmartPtr.hpp"
 
 #include <condition_variable>
 #include <functional>
@@ -14,8 +15,8 @@ namespace eveio {
 class EventLoopThread {
   EventLoop *loop;
   std::thread loop_thread;
-  std::unique_ptr<std::mutex> mutex;
-  std::unique_ptr<std::condition_variable> cond;
+  UniquePtr<std::mutex> mutex;
+  UniquePtr<std::condition_variable> cond;
   std::function<void(EventLoop *)> init_callback;
 
 public:
@@ -25,8 +26,8 @@ public:
   EventLoopThread(Fn &&fn, Args &&...args)
       : loop(nullptr),
         loop_thread(),
-        mutex(new std::mutex),
-        cond(new std::condition_variable),
+        mutex(MakeUnique<std::mutex>()),
+        cond(MakeUnique<std::condition_variable>()),
         init_callback(std::bind(std::forward<Fn>(fn),
                                 std::forward<Args>(args)...,
                                 std::placeholders::_1)) {}

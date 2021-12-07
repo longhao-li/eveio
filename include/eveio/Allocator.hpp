@@ -30,6 +30,24 @@ public:
   static constexpr void deallocate(T *p, size_t) noexcept { mi_free(p); }
 };
 
+template <class T>
+struct Constructor {
+  template <class... Args>
+  T *operator()(Args &&...args) {
+    T *p = Allocator<T>::allocate(1);
+    ::new ((void *)p) T(std::forward<Args>(args)...);
+    return p;
+  }
+};
+
+template <class T>
+struct Destructor {
+  void operator()(T *p) noexcept {
+    p->~T();
+    Allocator<T>::deallocate(p, 1);
+  }
+};
+
 } // namespace eveio
 
 #endif // EVEIO_ALLOCATOR_HPP

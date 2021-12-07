@@ -3,6 +3,7 @@
 
 #include "eveio/Channel.hpp"
 #include "eveio/Poller.hpp"
+#include "eveio/SmartPtr.hpp"
 #include "eveio/Vector.hpp"
 #include "eveio/WakeupHandle.hpp"
 
@@ -24,7 +25,7 @@ class EventLoop {
   volatile bool is_handling_event;
 
   WakeupHandle wakeup_handle;
-  std::unique_ptr<Channel> wakeup_channel;
+  UniquePtr<Channel> wakeup_channel;
 
   std::thread::id t_id;
 

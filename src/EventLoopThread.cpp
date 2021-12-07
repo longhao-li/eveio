@@ -5,8 +5,8 @@ using namespace eveio;
 eveio::EventLoopThread::EventLoopThread() noexcept
     : loop(nullptr),
       loop_thread(),
-      mutex(new std::mutex),
-      cond(new std::condition_variable),
+      mutex(MakeUnique<std::mutex>()),
+      cond(MakeUnique<std::condition_variable>()),
       init_callback() {}
 
 eveio::EventLoopThread::EventLoopThread(EventLoopThread &&other) noexcept

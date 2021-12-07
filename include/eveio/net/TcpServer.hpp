@@ -3,6 +3,7 @@
 
 #include "eveio/Channel.hpp"
 #include "eveio/EventLoopThreadPool.hpp"
+#include "eveio/SmartPtr.hpp"
 #include "eveio/net/Acceptor.hpp"
 #include "eveio/net/AsyncTcpConnection.hpp"
 #include "eveio/net/InetAddr.hpp"
@@ -19,7 +20,7 @@ class TcpServer {
   std::atomic_bool is_started;
   bool reuse_port;
 
-  std::unique_ptr<Acceptor> acceptor;
+  UniquePtr<Acceptor> acceptor;
 
   TcpConnectionCallback connection_callback;
   TcpMessageCallback message_callback;

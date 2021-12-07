@@ -3,6 +3,7 @@
 
 #include "eveio/Event.hpp"
 #include "eveio/Handle.hpp"
+#include "eveio/SmartPtr.hpp"
 #include "eveio/Time.hpp"
 
 #include <functional>
@@ -21,7 +22,7 @@ private:
   EventLoop *const loop;
   const Handle handle;
 
-  std::weak_ptr<void> tied_object;
+  WeakPtr<void> tied_object;
   bool is_tied;
   bool is_handling_event;
   bool is_added_to_loop;
@@ -76,7 +77,7 @@ public:
 
   Events ListeningEvents() const noexcept { return events_listening; }
 
-  void Tie(std::weak_ptr<void> p) noexcept {
+  void Tie(WeakPtr<void> p) noexcept {
     is_tied = true;
     tied_object = p;
   }

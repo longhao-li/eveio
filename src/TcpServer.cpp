@@ -1,5 +1,6 @@
 #include "eveio/net/TcpServer.hpp"
 #include "eveio/EventLoop.hpp"
+#include "eveio/SmartPtr.hpp"
 #include "eveio/net/Acceptor.hpp"
 #include "eveio/net/AsyncTcpConnection.hpp"
 #include "eveio/net/TcpSocket.hpp"
@@ -41,11 +42,11 @@ void eveio::net::TcpServer::Start() noexcept {
 
     io_context->Start();
 
-    acceptor = std::make_unique<Acceptor>(
-        *loop, std::move(sock_res.Unwarp()), reuse_port);
+    acceptor =
+        MakeUnique<Acceptor>(*loop, std::move(sock_res.Unwarp()), reuse_port);
 
     acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
-      auto async_conn = std::make_shared<AsyncTcpConnection>(
+      auto async_conn = MakeShared<AsyncTcpConnection>(
           *(this->io_context->GetNextLoop()), std::move(conn));
       async_conn->Initialize();
 
