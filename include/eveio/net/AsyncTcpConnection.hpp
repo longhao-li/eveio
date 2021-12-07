@@ -40,7 +40,6 @@ class AsyncTcpConnection
   TcpCloseCallback close_callback;
 
   std::atomic_bool is_exiting;
-  std::atomic_bool close_cb_called;
 
 public:
   // for internal usage

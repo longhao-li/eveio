@@ -73,6 +73,9 @@ int main(int argc, char *argv[]) {
   SPDLOG_INFO("sizeof AsyncTcpConnection: {}. tid: {}.",
               sizeof(AsyncTcpConnection),
               std::this_thread::get_id());
+
+  spdlog::set_default_logger(spdlog::basic_logger_mt("default", "EchoServer.log", true));
+
   if (argc > 1)
     NumThread = atoi(argv[1]);
 

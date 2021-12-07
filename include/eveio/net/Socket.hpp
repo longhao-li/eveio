@@ -2,7 +2,6 @@
 #define EVEIO_NET_SOCKET_HPP
 
 #include "eveio/net/Config.hpp"
-#include <sys/socket.h>
 
 namespace eveio {
 namespace net {

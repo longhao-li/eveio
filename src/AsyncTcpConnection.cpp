@@ -25,8 +25,7 @@ eveio::net::AsyncTcpConnection::AsyncTcpConnection(
       message_callback(),
       write_complete_callback(),
       close_callback(),
-      is_exiting(false),
-      close_cb_called(false) {}
+      is_exiting(false) {}
 
 eveio::net::AsyncTcpConnection::~AsyncTcpConnection() noexcept {
   // assert(loop->IsInLoopThread());
@@ -88,20 +87,21 @@ void eveio::net::AsyncTcpConnection::AsyncSend(const void *buf,
 }
 
 void eveio::net::AsyncTcpConnection::WouldDestroy() noexcept {
-  is_exiting.exchange(true, std::memory_order_relaxed);
-  // loop->RunInLoop(&Channel::Unregist, &channel);
-  loop->QueueInLoop(&AsyncTcpConnection::Destroy, shared_from_this());
+  if (is_exiting.exchange(true, std::memory_order_relaxed) == false) {
+    loop->QueueInLoop(&AsyncTcpConnection::Destroy, shared_from_this());
+  }
 }
 
 void eveio::net::AsyncTcpConnection::Destroy() noexcept {
   assert(loop->IsRunning());
   assert(loop->IsInLoopThread());
 
-  channel.Unregist();
+  auto guard = shared_from_this();
 
-  if (close_cb_called.exchange(true, std::memory_order_relaxed) == false &&
-      close_callback)
+  if (close_callback)
     close_callback(this);
+  
+  channel.Unregist();
   this->guard_self.reset();
 }
 
@@ -156,7 +156,8 @@ void eveio::net::AsyncTcpConnection::SendInLoop() noexcept {
         loop->QueueInLoop(write_complete_callback, this);
     }
   } else {
-    if (byte_write < 0) {
+    int saved_errno = errno;
+    if (byte_write < 0 && saved_errno != ECONNRESET && saved_errno != EPIPE) {
       SPDLOG_ERROR("Connection {} failed to transfer data to peer {}. error "
                    "message: {}.",
                    conn.native_socket(),

@@ -114,12 +114,11 @@ void eveio::Poller::Update(uint32_t rw,
   };
 
   if (::kevent(kq_fd.native_handle(), &change, 1, nullptr, 0, &timeout) < 0) {
-    SPDLOG_CRITICAL(
+    SPDLOG_ERROR(
         "kqueue update failed. Handle: {}, flags: {}, error message: {}.",
         chan.GetHandle().native_handle(),
         flag,
         std::strerror(errno));
-    std::abort();
   }
 }
 
