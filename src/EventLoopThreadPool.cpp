@@ -1,4 +1,5 @@
 #include "eveio/EventLoopThreadPool.hpp"
+#include "eveio/EventLoopThread.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -31,8 +32,8 @@ void eveio::EventLoopThreadPool::Start() noexcept {
       std::abort();
     }
     for (size_t i = 0; i < num_thread; ++i) {
-      workers.emplace_back();
-      loops.emplace_back(workers.back().StartLoop());
+      workers.emplace_back(MakeUnique<EventLoopThread>());
+      loops.emplace_back(workers.back()->StartLoop());
     }
   }
 }

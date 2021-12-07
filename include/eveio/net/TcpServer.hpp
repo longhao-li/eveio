@@ -20,7 +20,7 @@ class TcpServer {
   std::atomic_bool is_started;
   bool reuse_port;
 
-  UniquePtr<Acceptor> acceptor;
+  SharedPtr<Acceptor> acceptor;
 
   TcpConnectionCallback connection_callback;
   TcpMessageCallback message_callback;
@@ -41,7 +41,7 @@ public:
   TcpServer(TcpServer &&) = delete;
   TcpServer &operator=(TcpServer &&) = delete;
 
-  ~TcpServer() noexcept = default;
+  ~TcpServer() noexcept;
 
   const InetAddr &LocalAddr() const noexcept { return acceptor->LocalAddr(); }
   EventLoop *GetLoop() const noexcept { return loop; }

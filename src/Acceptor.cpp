@@ -4,6 +4,7 @@
 #include "eveio/net/TcpConnection.hpp"
 #include "eveio/net/TcpSocket.hpp"
 
+#include <memory>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
@@ -15,7 +16,8 @@ using namespace eveio::net;
 eveio::net::Acceptor::Acceptor(EventLoop &loop,
                                TcpSocket &&socket,
                                bool reuse_port) noexcept
-    : loop(&loop),
+    : std::enable_shared_from_this<Acceptor>(),
+      loop(&loop),
       is_listening(false),
       accept_socket(std::move(socket)),
       channel(loop, accept_socket.native_socket()),
@@ -41,7 +43,7 @@ eveio::net::Acceptor::Acceptor(EventLoop &loop,
   channel.SetReadCallback(&Acceptor::HandleRead, this);
 }
 
-eveio::net::Acceptor::~Acceptor() noexcept { channel.Unregist(); }
+eveio::net::Acceptor::~Acceptor() noexcept { assert(channel.IsNoneEvent()); }
 
 void eveio::net::Acceptor::Listen() noexcept {
   assert(loop->IsInLoopThread());
@@ -52,6 +54,12 @@ void eveio::net::Acceptor::Listen() noexcept {
     std::abort();
   }
   loop->RunInLoop(&Channel::EnableReading, &channel);
+}
+
+void eveio::net::Acceptor::Quit() noexcept {
+  assert(loop->IsInLoopThread());
+  channel.Unregist();
+  is_listening = false;
 }
 
 void eveio::net::Acceptor::HandleRead(Time) noexcept {

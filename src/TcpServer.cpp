@@ -30,6 +30,10 @@ eveio::net::TcpServer::TcpServer(EventLoop &loop,
       close_callback(),
       local_addr(listen_addr) {}
 
+eveio::net::TcpServer::~TcpServer() noexcept {
+  loop->RunInLoop(&Acceptor::Quit, acceptor);
+}
+
 void eveio::net::TcpServer::Start() noexcept {
   if (is_started.exchange(true, std::memory_order_relaxed) == false) {
     auto sock_res = TcpSocket::Create(local_addr);
@@ -43,7 +47,7 @@ void eveio::net::TcpServer::Start() noexcept {
     io_context->Start();
 
     acceptor =
-        MakeUnique<Acceptor>(*loop, std::move(sock_res.Unwarp()), reuse_port);
+        MakeShared<Acceptor>(*loop, std::move(sock_res.Unwarp()), reuse_port);
 
     acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
       auto async_conn = MakeShared<AsyncTcpConnection>(
@@ -60,9 +64,6 @@ void eveio::net::TcpServer::Start() noexcept {
         connection_callback(async_conn.get());
     });
 
-    {
-      auto p = acceptor.get();
-      loop->RunInLoop([p]() { p->Listen(); });
-    }
+    loop->RunInLoop([this]() { acceptor->Listen(); });
   }
 }

@@ -52,12 +52,12 @@ private:
                 conn->PeerAddr().GetIpWithPort(),
                 msg.size(),
                 time);
-    if (msg == "exit\n") {
+    if (msg >= "exit\n") {
       conn->AsyncSend("bye\n");
       conn->CloseWrite();
     }
 
-    if (msg == "quit\n") {
+    if (msg >= "quit\n") {
       server.GetLoop()->Quit();
     }
     conn->AsyncSend(msg);

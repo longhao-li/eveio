@@ -13,9 +13,9 @@ namespace net {
 
 using NewTcpConnectionCallback = std::function<void(TcpConnection &&)>;
 
-class Acceptor {
+class Acceptor : public std::enable_shared_from_this<Acceptor> {
   EventLoop *loop;
-  bool is_listening;
+  volatile bool is_listening;
   TcpSocket accept_socket;
   Channel channel;
   NewTcpConnectionCallback callback;
@@ -54,6 +54,8 @@ public:
   }
 
   void Listen() noexcept;
+
+  void Quit() noexcept;
 
 private:
   void HandleRead(Time) noexcept;

@@ -2,6 +2,7 @@
 #define EVEIO_EVENTLOOP_THREADPOOL_HPP
 
 #include "eveio/EventLoopThread.hpp"
+#include "eveio/SmartPtr.hpp"
 #include "eveio/Vector.hpp"
 
 #include <atomic>
@@ -13,7 +14,7 @@ class EventLoopThreadPool {
   std::atomic_bool is_started;
   size_t num_thread;
   std::atomic_size_t next_loop;
-  Vector<EventLoopThread> workers;
+  Vector<UniquePtr<EventLoopThread>> workers;
   Vector<EventLoop *> loops;
 
 public:
@@ -44,8 +45,9 @@ public:
     if (is_started.exchange(true, std::memory_order_relaxed) == false) {
       assert(num_thread > 0);
       for (size_t i = 0; i < num_thread; ++i) {
-        workers.emplace_back(std::forward<Fn>(init), std::forward<Fn>(args)...);
-        loops.emplace_back(workers.back().StartLoop());
+        workers.emplace_back(MakeUnique<EventLoopThread>(
+            std::forward<Fn>(init), std::forward<Fn>(args)...));
+        loops.emplace_back(workers.back()->StartLoop());
       }
     }
   }
