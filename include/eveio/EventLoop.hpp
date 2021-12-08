@@ -7,6 +7,8 @@
 #include "eveio/Vector.hpp"
 #include "eveio/WakeupHandle.hpp"
 
+#include "concurrentqueue.h"
+
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -42,6 +44,15 @@
 /// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace eveio {
+namespace detail {
+
+struct EveioConcurrentQueueTrait
+    : public moodycamel::ConcurrentQueueDefaultTraits {
+  static inline void *malloc(size_t size) noexcept { return mi_malloc(size); }
+  static inline void free(void *ptr) noexcept { return mi_free(ptr); }
+};
+
+} // namespace detail
 
 class EventLoop {
   typedef Vector<Channel *> ChannelList;
@@ -57,11 +68,11 @@ class EventLoop {
   UniquePtr<Channel> wakeup_channel;
 
   std::thread::id t_id;
-
   ChannelList active_channels;
 
-  mutable std::mutex mutex;
-  Vector<std::function<void()>> pending_func;
+  moodycamel::ConcurrentQueue<std::function<void()>,
+                              detail::EveioConcurrentQueueTrait>
+      pending_func;
 
 public:
   EventLoop() noexcept;
@@ -101,8 +112,7 @@ public:
 
   template <class Fn, class... Args>
   void QueueInLoop(Fn &&fn, Args &&...args) {
-    std::lock_guard<std::mutex> lock(mutex);
-    pending_func.emplace_back(
+    pending_func.enqueue(
         std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...));
   }
 

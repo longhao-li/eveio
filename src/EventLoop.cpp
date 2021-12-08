@@ -49,7 +49,6 @@ eveio::EventLoop::EventLoop() noexcept
       poller(),
       active_channels(),
       t_id(std::this_thread::get_id()),
-      mutex(),
       pending_func() {
   if (LoopInCurrentThread != nullptr) {
     SPDLOG_CRITICAL("Another eventloop {} already exists in current thread {}.",
@@ -103,13 +102,8 @@ void eveio::EventLoop::Quit() noexcept {
 }
 
 void eveio::EventLoop::DoPendingFunc() noexcept {
-  Vector<std::function<void()>> funcs;
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    pending_func.swap(funcs);
-  }
-
-  for (auto &&fn : funcs)
+  std::function<void()> fn;
+  while (pending_func.try_dequeue(fn))
     fn();
 }
 

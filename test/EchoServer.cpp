@@ -8,6 +8,7 @@
 
 #include <fmt/ostream.h>
 
+#include <spdlog/common.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
 
@@ -103,7 +104,7 @@ int main(int argc, char *argv[]) {
               sizeof(AsyncTcpConnection),
               std::this_thread::get_id());
 
-  spdlog::set_default_logger(spdlog::basic_logger_mt("default", "EchoServer.log", true));
+  spdlog::default_logger()->set_level(spdlog::level::err);
 
   if (argc > 1)
     NumThread = atoi(argv[1]);
