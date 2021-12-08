@@ -9,7 +9,7 @@ using namespace eveio;
 
 eveio::EventLoopThreadPool::EventLoopThreadPool(size_t thread_num) noexcept
     : is_started(false),
-      num_thread(thread_num),
+      num_thread(thread_num > 0 ? thread_num : 1),
       next_loop(0),
       workers(),
       loops() {}

@@ -18,8 +18,11 @@ class EventLoopThreadPool {
   Vector<EventLoop *> loops;
 
 public:
-  EventLoopThreadPool(
-      size_t thread_num = std::thread::hardware_concurrency()) noexcept;
+  // considering acceptor usually takes 1 thread, use hardware_concurrency() - 1
+  // as default thread num.
+  // it is OK to pass 0 here, num_thread will be set to 1.
+  EventLoopThreadPool(size_t thread_num = std::thread::hardware_concurrency() -
+                                          1) noexcept;
 
   EventLoopThreadPool(const EventLoopThreadPool &) = delete;
   EventLoopThreadPool &operator=(const EventLoopThreadPool &) = delete;
