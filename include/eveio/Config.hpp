@@ -7,6 +7,8 @@
 #  define EVEIO_OS_DARWIN 1
 #elif defined(__linux__) || defined(__linux)
 #  define EVEIO_OS_LINUX 1
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
+#  define EVEIO_OS_FREEBSD 1
 #endif
 
 #if defined(EVEIO_OS_LINUX)

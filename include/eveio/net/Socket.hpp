@@ -2,6 +2,8 @@
 #define EVEIO_NET_SOCKET_HPP
 
 #include "eveio/net/Config.hpp"
+#include "eveio/net/InetAddr.hpp"
+#include <sys/socket.h>
 
 namespace eveio {
 namespace net {
@@ -104,6 +106,22 @@ socket_write(native_socket_type sock, const void *buf, size_t size) noexcept {
   return ::write(sock, buf, size);
 }
 
+inline int socket_sendto(native_socket_type sock,
+                         const void *buf,
+                         size_t size,
+                         const struct sockaddr *addr,
+                         socklen_t len) noexcept {
+  return ::sendto(sock, buf, size, MSG_NOSIGNAL, addr, len);
+}
+
+inline int socket_recvfrom(native_socket_type sock,
+                           void *buf,
+                           size_t cap,
+                           struct sockaddr *addr,
+                           socklen_t *len) noexcept {
+  return ::recvfrom(sock, buf, cap, 0, addr, len);
+}
+
 #elif defined(EVEIO_OS_LINUX)
 typedef int native_socket_type;
 
@@ -197,6 +215,39 @@ socket_write(native_socket_type sock, const void *buf, size_t size) noexcept {
   return ::send(sock, buf, size, MSG_NOSIGNAL);
 }
 #endif
+
+class SocketBase {
+public:
+  typedef detail::native_socket_type native_socket_type;
+  static constexpr native_socket_type InvalidSocket = detail::InvalidSocket;
+
+protected:
+  native_socket_type sock;
+  InetAddr local_addr;
+
+  SocketBase(native_socket_type h, const InetAddr &addr) noexcept
+      : sock(h), local_addr(addr) {}
+
+  // disable upcast
+  ~SocketBase() noexcept;
+
+public:
+  SocketBase(const SocketBase &) = delete;
+  SocketBase &operator=(const SocketBase &) = delete;
+
+  SocketBase(SocketBase &&other) noexcept;
+  SocketBase &operator=(SocketBase &&other) noexcept;
+
+  bool SetNonblock(bool on) const noexcept;
+  bool SetReuseAddr(bool on) const noexcept;
+  bool SetReusePort(bool on) const noexcept;
+
+  const InetAddr &LocalAddr() const noexcept { return local_addr; }
+
+  native_socket_type native_socket() const noexcept { return sock; }
+  operator native_socket_type() const noexcept { return sock; }
+};
+
 } // namespace detail
 } // namespace net
 } // namespace eveio

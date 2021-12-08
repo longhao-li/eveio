@@ -3,11 +3,11 @@
 #include "eveio/EventLoop.hpp"
 #include "eveio/net/TcpConnection.hpp"
 
-#include <asm-generic/errno.h>
 #include <spdlog/spdlog.h>
 
 #include <atomic>
 #include <cassert>
+#include <cerrno>
 #include <cstdlib>
 #include <utility>
 
