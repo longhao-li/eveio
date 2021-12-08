@@ -25,7 +25,9 @@ public:
     server.Start();
   }
 
-  void OnConnection(net::AsyncTcpConnection *conn) noexcept {}
+  void OnConnection(net::AsyncTcpConnection *conn) noexcept {
+    conn->SetKeepAlive(true);
+  }
   void OnMessage(net::AsyncTcpConnection *conn,
                  net::Buffer &input,
                  Time time) noexcept {
