@@ -1,0 +1,11 @@
+Language: Cpp
+BasedOnStyle: LLVM
+AllowShortIfStatementsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+AllowShortFunctionsOnASingleLine: true
+AlwaysBreakTemplateDeclarations: true
+IndentPPDirectives: AfterHash
+AlignOperands: Align
+AlignTrailingComments: true
