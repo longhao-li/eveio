@@ -105,7 +105,7 @@ void eveio::net::AsyncTcpConnection::AsyncSend(const void *buf,
     return;
 
   if (loop->IsInLoopThread()) {
-    this->write_buffer.Append(buf, byte);
+    write_buffer.Append(buf, byte);
     SendInLoop();
   } else {
     String data(static_cast<const char *>(buf), byte);
@@ -156,7 +156,6 @@ void eveio::net::AsyncTcpConnection::HandleRead(Time time) noexcept {
     try_read();
   } else {
     int saved_errno = errno;
-    assert(guard_self != nullptr);
     if (saved_errno == ECONNRESET || saved_errno == EPIPE) {
       try_read();
       SPDLOG_TRACE("Connection with {} closed.", PeerAddr().GetIpWithPort());
@@ -178,9 +177,12 @@ void eveio::net::AsyncTcpConnection::SendInLoop() noexcept {
     write_buffer.Readout(byte_write);
     if (write_buffer.IsEmpty()) {
       channel.DisableWriting();
-      if (write_complete_callback &&
-          !is_exiting.load(std::memory_order_relaxed))
-        loop->QueueInLoop(write_complete_callback, this);
+      if (write_complete_callback) {
+        // get shared_ptr to avoid this from being released
+        auto p = shared_from_this();
+        loop->QueueInLoop(
+            [this, p]() { this->write_complete_callback(p.get()); });
+      }
     }
   } else {
     int saved_errno = errno;
