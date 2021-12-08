@@ -12,5 +12,5 @@ add_test(NAME eveio_unittest COMMAND eveio_unittest)
 add_executable(eveio_EchoServer EchoServer.cpp)
 target_link_libraries(eveio_EchoServer eveio)
 
-add_executable(muduo_echo PingPong.cpp)
-target_link_libraries(muduo_echo eveio)
+add_executable(eveio_echo PingPong.cpp)
+target_link_libraries(eveio_echo eveio)
