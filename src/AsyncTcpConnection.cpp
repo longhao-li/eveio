@@ -3,6 +3,7 @@
 #include "eveio/EventLoop.hpp"
 #include "eveio/net/TcpConnection.hpp"
 
+#include <asm-generic/errno.h>
 #include <spdlog/spdlog.h>
 
 #include <atomic>
@@ -129,7 +130,7 @@ void eveio::net::AsyncTcpConnection::Destroy() noexcept {
 
   if (close_callback)
     close_callback(this);
-  
+
   channel.DisableAll();
   channel.Unregist();
   this->guard_self.reset();
@@ -153,23 +154,19 @@ void eveio::net::AsyncTcpConnection::HandleRead(Time time) noexcept {
     assert(guard_self != nullptr);
 
     try_read();
-    if (byte_read == 0 && errno != EWOULDBLOCK) {
-      SPDLOG_TRACE("Connection with {} closed.", PeerAddr().GetIpWithPort());
-      WouldDestroy();
-    }
   } else {
     int saved_errno = errno;
     assert(guard_self != nullptr);
     if (saved_errno == ECONNRESET || saved_errno == EPIPE) {
       try_read();
       SPDLOG_TRACE("Connection with {} closed.", PeerAddr().GetIpWithPort());
-    } else {
+      WouldDestroy();
+    } else if (saved_errno != EWOULDBLOCK) {
       SPDLOG_ERROR("connection {} failed to receive data from {}: {}.",
                    conn.native_socket(),
                    PeerAddr().GetIpWithPort(),
                    std::strerror(saved_errno));
     }
-    WouldDestroy();
   }
 }
 
@@ -177,7 +174,7 @@ void eveio::net::AsyncTcpConnection::SendInLoop() noexcept {
   assert(loop->IsInLoopThread());
 
   int byte_write = conn.Send(write_buffer.Data<char>(), write_buffer.Size());
-  if (byte_write > 0) {
+  if (byte_write >= 0) {
     write_buffer.Readout(byte_write);
     if (write_buffer.IsEmpty()) {
       channel.DisableWriting();
@@ -187,13 +184,21 @@ void eveio::net::AsyncTcpConnection::SendInLoop() noexcept {
     }
   } else {
     int saved_errno = errno;
-    if (byte_write < 0 && saved_errno != ECONNRESET && saved_errno != EPIPE) {
-      SPDLOG_ERROR("Connection {} failed to transfer data to peer {}. error "
-                   "message: {}.",
-                   conn.native_socket(),
-                   PeerAddr().GetIpWithPort(),
-                   std::strerror(errno));
+    if (saved_errno != EWOULDBLOCK) {
+      if (saved_errno == ECONNRESET || saved_errno == EPIPE) {
+        SPDLOG_TRACE("Connection with {} closed.", PeerAddr().GetIpWithPort());
+        WouldDestroy();
+        return;
+      } else {
+        SPDLOG_ERROR("Connection {} failed to transfer data to peer {}. error "
+                     "message: {}.",
+                     conn.native_socket(),
+                     PeerAddr().GetIpWithPort(),
+                     std::strerror(errno));
+      }
     }
-    WouldDestroy();
   }
+
+  if (!write_buffer.IsEmpty())
+    channel.EnableWriting();
 }
