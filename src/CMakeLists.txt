@@ -7,6 +7,6 @@ target_link_libraries(
   PUBLIC
   spdlog::spdlog
   fmt::fmt
-  mimalloc-static
+  mimalloc
   ${CMAKE_THREAD_LIBS_INIT}
 )
