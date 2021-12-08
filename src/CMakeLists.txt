@@ -4,8 +4,9 @@ add_library(eveio STATIC ${EVEIO_SRC})
 
 target_link_libraries(
   eveio
+  PUBLIC
   spdlog::spdlog
   fmt::fmt
-  mimalloc
+  mimalloc-static
   ${CMAKE_THREAD_LIBS_INIT}
 )

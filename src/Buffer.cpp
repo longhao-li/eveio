@@ -10,7 +10,7 @@ using namespace eveio::net;
 static constexpr const int DefaultBufSize = 65536;
 
 void eveio::net::Buffer::Append(const void *data, size_t byte) noexcept {
-  storage.resize(tail + byte);
+  storage.reserve(tail + byte);
   memcpy(storage.data() + tail, data, byte);
   tail += byte;
 }
