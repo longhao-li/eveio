@@ -9,6 +9,42 @@
 using namespace eveio;
 
 #if defined(EVEIO_OS_LINUX)
+
+#  include <fcntl.h>
+#  include <sys/eventfd.h>
+#  include <unistd.h>
+
+eveio::WakeupHandle::WakeupHandle(int fd) noexcept : event_fd(fd) {}
+
+eveio::WakeupHandle::WakeupHandle() noexcept
+    : event_fd(::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) {
+  if (event_fd < 0) {
+    SPDLOG_CRITICAL("failed to create eventfd: {}.", std::strerror(errno));
+    std::abort();
+  }
+}
+
+Result<WakeupHandle> eveio::WakeupHandle::Create() noexcept {
+  int fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+  if (fd < 0)
+    return Result<WakeupHandle>::Error(std::strerror(errno));
+  return Result<WakeupHandle>::Ok(fd);
+}
+
+bool eveio::WakeupHandle::Close(WakeupHandle handle) noexcept {
+  return (::close(handle.event_fd) >= 0);
+}
+
+void eveio::WakeupHandle::Trigger() const noexcept {
+  uint64_t val = 1;
+  ::write(event_fd, &val, sizeof(val));
+}
+
+void eveio::WakeupHandle::Respond() const noexcept {
+  uint64_t val = 0;
+  ::read(event_fd, &val, sizeof(val));
+}
+
 #elif defined(EVEIO_OS_DARWIN)
 
 #  include <fcntl.h>

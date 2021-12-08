@@ -58,6 +58,7 @@ void eveio::net::Acceptor::Listen() noexcept {
 
 void eveio::net::Acceptor::Quit() noexcept {
   assert(loop->IsInLoopThread());
+  channel.DisableAll();
   channel.Unregist();
   is_listening = false;
 }

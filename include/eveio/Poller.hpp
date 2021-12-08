@@ -52,6 +52,33 @@ public:
 
 #if defined(EVEIO_POLLER_HAS_EPOLL)
 
+#  include <sys/epoll.h>
+
+namespace eveio {
+
+class Poller : public detail::PollerBase<Poller> {
+  int ep_fd;
+  Vector<struct epoll_event> events;
+
+public:
+  static constexpr const int32_t ChannelInitPollState = -1;
+
+  Poller() noexcept;
+  ~Poller() noexcept;
+
+  Time Poll(Time::Milliseconds timeout, ChannelList &active_channels) noexcept;
+
+  void UpdateChannel(Channel &chan) noexcept;
+  void RemoveChannel(Channel &chan) noexcept;
+
+private:
+  void Update(int op, Channel &chan) noexcept;
+  void FillActiveChannels(int num_events,
+                          ChannelList &active_channels) const noexcept;
+};
+
+} // namespace eveio
+
 #elif defined(EVEIO_POLLER_HAS_KQUEUE)
 
 #  include <sys/event.h>

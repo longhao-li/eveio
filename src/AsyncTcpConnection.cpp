@@ -101,6 +101,7 @@ void eveio::net::AsyncTcpConnection::Destroy() noexcept {
   if (close_callback)
     close_callback(this);
   
+  channel.DisableAll();
   channel.Unregist();
   this->guard_self.reset();
 }

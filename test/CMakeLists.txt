@@ -5,7 +5,7 @@ add_executable(eveio_unittest ${EVEIO_UNITTEST_SRC})
 target_link_libraries(
   eveio_unittest
   eveio
-  ${GTEST_MAIN_LIBRARIES}
+  ${GTEST_BOTH_LIBRARIES}
 )
 add_test(NAME eveio_unittest COMMAND eveio_unittest)
 
