@@ -2,6 +2,8 @@
 #include "eveio/Result.hpp"
 #include "eveio/net/Socket.hpp"
 
+#include <cstring>
+
 using namespace eveio;
 using namespace eveio::net;
 
