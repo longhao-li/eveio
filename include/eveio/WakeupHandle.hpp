@@ -6,7 +6,7 @@
 
 namespace eveio {
 
-#if defined(EVEIO_OS_LINUX)
+#if defined(EVEIO_HAS_EVENTFD)
 // use eventfd
 
 class WakeupHandle {
@@ -39,7 +39,7 @@ public:
   }
 };
 
-#elif defined(EVEIO_OS_DARWIN)
+#elif defined(EVEIO_HAS_POSIX)
 // use pipe to simulate eventfd
 
 class WakeupHandle {
