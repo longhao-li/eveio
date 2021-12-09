@@ -15,5 +15,8 @@ target_link_libraries(eveio_TcpEchoServer eveio)
 add_executable(eveio_UdpEchoServer UdpEchoServer.cpp)
 target_link_libraries(eveio_UdpEchoServer eveio)
 
+add_executable(eveio_UdpClient UdpClient.cpp)
+target_link_libraries(eveio_UdpClient eveio)
+
 add_executable(eveio_echo PingPong.cpp)
 target_link_libraries(eveio_echo eveio)

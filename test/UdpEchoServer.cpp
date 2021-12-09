@@ -24,7 +24,7 @@ public:
         SPDLOG_INFO("receive {} bytes data from {}: {}",
                     ret,
                     peer.GetIpWithPort(),
-                    buf.Data());
+                    StringRef(buf.Data(), buf.Size()));
 
         server->AsyncSend(buf.Data(), ret, peer);
       }
