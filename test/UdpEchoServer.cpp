@@ -7,17 +7,16 @@ using namespace eveio;
 using namespace eveio::net;
 
 class EchoServer {
-  EventLoop *loop;
   UdpServer server;
 
 public:
   EchoServer(EventLoop &loop, const InetAddr &listen_addr) noexcept
-      : loop(&loop), server(loop, listen_addr, true) {
-    server.SetMessageCallback([this](UdpServer *server,
-                                     const InetAddr &peer,
-                                     FixedBuffer &buf,
-                                     Time time,
-                                     int ret) {
+      : server(loop, listen_addr, true) {
+    server.SetMessageCallback([](UdpServer *srv,
+                                 const InetAddr &peer,
+                                 FixedBuffer &buf,
+                                 Time time,
+                                 int64_t ret) {
       if (ret < 0)
         SPDLOG_ERROR("failed to receive message: {}.", std::strerror(errno));
       else {
@@ -26,7 +25,7 @@ public:
                     peer.GetIpWithPort(),
                     StringRef(buf.Data(), buf.Size()));
 
-        server->AsyncSend(buf.Data(), ret, peer);
+        srv->AsyncSend(buf.Data(), static_cast<size_t>(ret), peer);
       }
     });
   }

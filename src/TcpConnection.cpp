@@ -23,8 +23,8 @@ eveio::net::TcpConnection::Connect(const InetAddr &peer) noexcept {
 
 eveio::net::TcpConnection::TcpConnection(TcpConnection &&other) noexcept
     : conn_handle(other.conn_handle),
-      create_time(other.create_time),
-      peer_addr(other.peer_addr) {
+      peer_addr(other.peer_addr),
+      create_time(other.create_time) {
   other.conn_handle = InvalidSocket;
 }
 
@@ -44,16 +44,17 @@ eveio::net::TcpConnection::~TcpConnection() noexcept {
     detail::close_socket(conn_handle);
 }
 
-int eveio::net::TcpConnection::Send(StringRef data) const noexcept {
+int64_t eveio::net::TcpConnection::Send(StringRef data) const noexcept {
   return detail::socket_write(conn_handle, data.data(), data.size());
 }
 
-int eveio::net::TcpConnection::Send(const void *buf,
-                                    size_t byte) const noexcept {
+int64_t eveio::net::TcpConnection::Send(const void *buf,
+                                        size_t byte) const noexcept {
   return detail::socket_write(conn_handle, buf, byte);
 }
 
-int eveio::net::TcpConnection::Receive(void *buf, size_t cap) const noexcept {
+int64_t eveio::net::TcpConnection::Receive(void *buf,
+                                           size_t cap) const noexcept {
   return detail::socket_read(conn_handle, buf, cap);
 }
 
@@ -66,7 +67,7 @@ void eveio::net::TcpConnection::CloseWrite() const noexcept {
 
 bool eveio::net::TcpConnection::IsClosed() const noexcept {
   struct sockaddr_in6 addr;
-  socklen_t len = peer_addr.Size();
+  socklen_t len = static_cast<socklen_t>(peer_addr.Size());
   int res = ::getpeername(
       conn_handle, reinterpret_cast<struct sockaddr *>(&addr), &len);
   return (res < 0 && errno == ENOTCONN);

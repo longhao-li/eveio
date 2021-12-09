@@ -4,7 +4,6 @@
 #include "eveio/Time.hpp"
 
 #include <fmt/ostream.h>
-
 #include <spdlog/spdlog.h>
 
 #include <cassert>
@@ -193,7 +192,7 @@ Time eveio::Poller::Poll(Time::Milliseconds timeout,
                             nullptr,
                             0,
                             std::addressof(events[0]),
-                            events.capacity(),
+                            static_cast<int>(events.capacity()),
                             &time_out);
   int saved_errno = errno;
   Time now = Time::Now();
@@ -212,7 +211,7 @@ Time eveio::Poller::Poll(Time::Milliseconds timeout,
 }
 
 void eveio::Poller::UpdateChannel(Channel &chan) noexcept {
-  uint32_t extra_flag = 0;
+  uint16_t extra_flag = 0;
   if (chan.GetPollState() == StateInit) {
     channels.emplace(std::make_pair(chan.GetHandle(), &chan));
     extra_flag = EV_ADD;
@@ -269,7 +268,7 @@ void eveio::Poller::Update(uint32_t rw,
 
 void eveio::Poller::FillActiveChannels(int num_events,
                                        ChannelList &active_channels) noexcept {
-  for (int i = 0; i < num_events; ++i) {
+  for (size_t i = 0; i < static_cast<size_t>(num_events); ++i) {
     Channel *chan = static_cast<Channel *>(events[i].udata);
     assert(chan != nullptr);
 

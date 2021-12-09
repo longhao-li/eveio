@@ -51,14 +51,13 @@ using namespace eveio::net;
 static int NumThread;
 
 class EchoServer {
-  EventLoopThreadPool *io_context;
   TcpServer server;
 
 public:
   EchoServer(EventLoop &loop,
              EventLoopThreadPool &io_context,
              const InetAddr listen_addr) noexcept
-      : io_context(&io_context), server(loop, io_context, listen_addr, false) {
+      : server(loop, io_context, listen_addr, false) {
     server.SetConnectionCallback(&EchoServer::OnConnection, this);
     server.SetMessageCallback(&EchoServer::OnMessage, this);
     server.SetCloseCallback(&EchoServer::OnClose, this);
@@ -113,7 +112,7 @@ int main(int argc, char *argv[]) {
   InetAddr addr = InetAddr::Ipv4Any(2000);
   EventLoopThreadPool io_context;
   if (NumThread > 0)
-    io_context.SetThreadNum(NumThread);
+    io_context.SetThreadNum(static_cast<size_t>(NumThread));
   EchoServer server(loop, io_context, addr);
   server.Start();
   loop.Loop();

@@ -20,14 +20,14 @@ int main(int argc, char *argv[]) {
   auto stream_res = net::UdpStream::Ipv4Stream();
   assert(stream_res.IsValid());
   auto &stream = stream_res.Unwarp();
-  auto peer = net::InetAddr::Ipv4Loopback(port);
+  auto peer = net::InetAddr::Ipv4Loopback(static_cast<uint16_t>(port));
 
   String str;
   for (;;) {
     str.clear();
     std::getline(std::cin, str);
     stream.SendTo(str, peer);
-    int len = stream.ReceiveFrom(buf, sizeof(buf), peer);
+    int64_t len = stream.ReceiveFrom(buf, sizeof(buf), peer);
     assert(len >= 0);
     buf[len] = 0;
     printf("%s\n", buf);

@@ -38,21 +38,24 @@ eveio::net::UdpStream::~UdpStream() noexcept {
     detail::close_socket(sock);
 }
 
-int eveio::net::UdpStream::SendTo(StringRef data,
-                                  const InetAddr &target) const noexcept {
+int64_t eveio::net::UdpStream::SendTo(StringRef data,
+                                      const InetAddr &target) const noexcept {
   return SendTo(data.data(), data.size(), target);
 }
 
-int eveio::net::UdpStream::SendTo(const void *data,
-                                  size_t size,
-                                  const InetAddr &target) const noexcept {
-  return detail::socket_sendto(
-      sock, data, size, target.AsSockaddr(), target.Size());
+int64_t eveio::net::UdpStream::SendTo(const void *data,
+                                      size_t size,
+                                      const InetAddr &target) const noexcept {
+  return detail::socket_sendto(sock,
+                               data,
+                               size,
+                               target.AsSockaddr(),
+                               static_cast<socklen_t>(target.Size()));
 }
 
-int eveio::net::UdpStream::ReceiveFrom(void *buf,
-                                       size_t cap,
-                                       InetAddr &peer) const noexcept {
+int64_t eveio::net::UdpStream::ReceiveFrom(void *buf,
+                                           size_t cap,
+                                           InetAddr &peer) const noexcept {
   struct sockaddr *peer_addr = const_cast<struct sockaddr *>(peer.AsSockaddr());
   socklen_t len = sizeof(peer);
   return detail::socket_recvfrom(sock, buf, cap, peer_addr, &len);

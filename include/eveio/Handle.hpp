@@ -5,8 +5,10 @@
 
 #if defined(EVEIO_OS_WIN32)
 #  include <handleapi.h>
-#else
+#elif defined(EVEIO_HAS_POSIX)
 #  include <unistd.h>
+#else
+#  error "unsupported operating system."
 #endif
 
 namespace eveio {

@@ -4,11 +4,11 @@
 #include "eveio/net/TcpConnection.hpp"
 #include "eveio/net/TcpSocket.hpp"
 
-#include <memory>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <cstdlib>
+#include <memory>
 
 using namespace eveio;
 using namespace eveio::net;

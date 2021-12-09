@@ -15,9 +15,9 @@ namespace net {
 class UdpServer;
 
 typedef std::function<void(
-    UdpServer *, const InetAddr &, FixedBuffer &, Time, int)>
+    UdpServer *, const InetAddr &, FixedBuffer &, Time, int64_t)>
     UdpMessageCallback;
-typedef std::function<void(UdpServer *, const InetAddr &, int)>
+typedef std::function<void(UdpServer *, const InetAddr &, int64_t)>
     UdpWriteCompleteCallback;
 
 class UdpServer {

@@ -37,9 +37,9 @@ public:
   Time CreateTime() const noexcept { return create_time; }
   const InetAddr &PeerAddr() const noexcept { return peer_addr; }
 
-  int Send(StringRef data) const noexcept;
-  int Send(const void *buf, size_t byte) const noexcept;
-  int Receive(void *buf, size_t cap) const noexcept;
+  int64_t Send(StringRef data) const noexcept;
+  int64_t Send(const void *buf, size_t byte) const noexcept;
+  int64_t Receive(void *buf, size_t cap) const noexcept;
 
   void CloseWrite() const noexcept;
   bool IsClosed() const noexcept;

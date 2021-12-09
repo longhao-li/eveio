@@ -19,14 +19,13 @@ bool eveio::net::Buffer::ReadFromSocket(detail::native_socket_type sock,
                                         int &tot_read) noexcept {
   char buf[DefaultBufSize]{};
   tot_read = 0;
-  int byte_read = 0;
+  int64_t byte_read = 0;
 
   for (;;) {
     byte_read = detail::socket_read(sock, buf, sizeof(buf));
-    int saved_errno = errno;
 
     if (byte_read > 0) {
-      Append(buf, byte_read);
+      Append(buf, static_cast<size_t>(byte_read));
       tot_read += byte_read;
       if (byte_read < DefaultBufSize)
         return true;

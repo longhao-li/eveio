@@ -164,9 +164,10 @@ void eveio::net::AsyncTcpConnection::HandleRead(Time time) noexcept {
 void eveio::net::AsyncTcpConnection::SendInLoop() noexcept {
   assert(loop->IsInLoopThread());
 
-  int byte_write = conn.Send(write_buffer.Data<char>(), write_buffer.Size());
+  int64_t byte_write =
+      conn.Send(write_buffer.Data<char>(), write_buffer.Size());
   if (byte_write >= 0) {
-    write_buffer.Readout(byte_write);
+    write_buffer.Readout(static_cast<size_t>(byte_write));
     if (write_buffer.IsEmpty()) {
       channel.DisableWriting();
       if (write_complete_callback) {

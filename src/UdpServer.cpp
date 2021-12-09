@@ -49,9 +49,9 @@ eveio::net::UdpServer::UdpServer(EventLoop &loop,
   channel->SetReadCallback([this](Time time) {
     FixedBuffer buf;
     InetAddr addr = InetAddr::Ipv4Any(0);
-    int ret = this->sock->ReceiveFrom(buf.Data(), buf.Capacity(), addr);
+    int64_t ret = this->sock->ReceiveFrom(buf.Data(), buf.Capacity(), addr);
     if (ret >= 0)
-      buf.SetSize(ret);
+      buf.SetSize(static_cast<size_t>(ret));
     this->message_callback(this, addr, buf, time, ret);
   });
 
@@ -63,7 +63,8 @@ eveio::net::UdpServer::UdpServer(EventLoop &loop,
     }
 
     for (auto &i : temp) {
-      int ret = this->sock->SendTo(i.first.Data(), i.first.Size(), i.second);
+      int64_t ret =
+          this->sock->SendTo(i.first.Data(), i.first.Size(), i.second);
       if (this->write_complete_callback)
         this->write_complete_callback(this, i.second, ret);
     }

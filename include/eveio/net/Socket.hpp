@@ -90,29 +90,29 @@ inline bool close_tcp_write(native_socket_type sock) noexcept {
   return (::shutdown(sock, SHUT_WR) >= 0);
 }
 
-inline int
+inline int64_t
 socket_read(native_socket_type sock, void *buf, size_t cap) noexcept {
   return ::recv(sock, buf, cap, 0);
 }
 
-inline int
+inline int64_t
 socket_write(native_socket_type sock, const void *buf, size_t size) noexcept {
   return ::send(sock, buf, size, MSG_NOSIGNAL);
 }
 
-inline int socket_sendto(native_socket_type sock,
-                         const void *buf,
-                         size_t size,
-                         const struct sockaddr *addr,
-                         socklen_t len) noexcept {
+inline int64_t socket_sendto(native_socket_type sock,
+                             const void *buf,
+                             size_t size,
+                             const struct sockaddr *addr,
+                             socklen_t len) noexcept {
   return ::sendto(sock, buf, size, MSG_NOSIGNAL, addr, len);
 }
 
-inline int socket_recvfrom(native_socket_type sock,
-                           void *buf,
-                           size_t cap,
-                           struct sockaddr *addr,
-                           socklen_t *len) noexcept {
+inline int64_t socket_recvfrom(native_socket_type sock,
+                               void *buf,
+                               size_t cap,
+                               struct sockaddr *addr,
+                               socklen_t *len) noexcept {
   return ::recvfrom(sock, buf, cap, 0, addr, len);
 }
 

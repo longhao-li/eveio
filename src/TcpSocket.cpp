@@ -17,7 +17,8 @@ Result<TcpSocket> eveio::net::TcpSocket::Create(const InetAddr &addr) noexcept {
   if (sock == InvalidSocket)
     return Result<TcpSocket>::Error(std::strerror(errno));
 
-  if (!detail::bind(sock, addr.AsSockaddr(), addr.Size())) {
+  if (!detail::bind(
+          sock, addr.AsSockaddr(), static_cast<socklen_t>(addr.Size()))) {
     int saved_errno = errno;
     detail::close_socket(sock);
     return Result<TcpSocket>::Error(std::strerror(saved_errno));
