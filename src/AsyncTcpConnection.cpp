@@ -63,14 +63,6 @@ eveio::net::AsyncTcpConnection::~AsyncTcpConnection() noexcept {
 }
 
 void eveio::net::AsyncTcpConnection::Initialize() noexcept {
-  if (!conn.SetNoSigPipe(true)) {
-    SPDLOG_CRITICAL(
-        "failed to set connection {} no SIGPIPE with peer address: {}. Abort.",
-        conn.native_socket(),
-        PeerAddr().GetIpWithPort());
-    std::abort();
-  }
-
   if (!conn.SetNonblock(true)) {
     SPDLOG_CRITICAL(
         "failed to set connection {} nonblock with peer address: {}. Abort.",

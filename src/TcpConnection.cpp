@@ -101,13 +101,3 @@ bool eveio::net::TcpConnection::SetKeepAlive(bool on) const noexcept {
   }
   return true;
 }
-
-bool eveio::net::TcpConnection::SetNoSigPipe(bool on) const noexcept {
-  if (!detail::set_no_sigpipe(conn_handle, on)) {
-    SPDLOG_ERROR("failed to set connection no signal pipe for socket {}: {}.",
-                 conn_handle,
-                 std::strerror(errno));
-    return false;
-  }
-  return true;
-}
