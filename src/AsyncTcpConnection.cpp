@@ -44,12 +44,12 @@ using namespace eveio::net;
 /// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 eveio::net::AsyncTcpConnection::AsyncTcpConnection(
-    EventLoop &loop, TcpConnection &&connect) noexcept
+    EventLoop &event_loop, TcpConnection &&connect) noexcept
     : std::enable_shared_from_this<AsyncTcpConnection>(),
       guard_self(),
-      loop(&loop),
+      loop(&event_loop),
       conn(std::move(connect)),
-      channel(loop, conn.native_socket()),
+      channel(event_loop, conn.native_socket()),
       read_buffer(),
       write_buffer(),
       message_callback(),
@@ -63,14 +63,6 @@ eveio::net::AsyncTcpConnection::~AsyncTcpConnection() noexcept {
 }
 
 void eveio::net::AsyncTcpConnection::Initialize() noexcept {
-  if (!conn.SetNoSigPipe(true)) {
-    SPDLOG_CRITICAL(
-        "failed to set connection {} no SIGPIPE with peer address: {}. Abort.",
-        conn.native_socket(),
-        PeerAddr().GetIpWithPort());
-    std::abort();
-  }
-
   if (!conn.SetNonblock(true)) {
     SPDLOG_CRITICAL(
         "failed to set connection {} nonblock with peer address: {}. Abort.",
@@ -138,7 +130,7 @@ void eveio::net::AsyncTcpConnection::Destroy() noexcept {
 
 void eveio::net::AsyncTcpConnection::HandleRead(Time time) noexcept {
   assert(loop->IsInLoopThread());
-  int byte_read = 0;
+  int64_t byte_read = 0;
 
   auto try_read = [this, time]() {
     if (read_buffer.Size() > 0) {
@@ -172,9 +164,10 @@ void eveio::net::AsyncTcpConnection::HandleRead(Time time) noexcept {
 void eveio::net::AsyncTcpConnection::SendInLoop() noexcept {
   assert(loop->IsInLoopThread());
 
-  int byte_write = conn.Send(write_buffer.Data<char>(), write_buffer.Size());
+  int64_t byte_write =
+      conn.Send(write_buffer.Data<char>(), write_buffer.Size());
   if (byte_write >= 0) {
-    write_buffer.Readout(byte_write);
+    write_buffer.Readout(static_cast<size_t>(byte_write));
     if (write_buffer.IsEmpty()) {
       channel.DisableWriting();
       if (write_complete_callback) {

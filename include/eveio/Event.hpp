@@ -6,7 +6,7 @@
 namespace eveio {
 namespace event {
 
-enum {
+enum : uint32_t {
   NoneEvent = 0x0,
   ReadEvent = 0x1,
   WriteEvent = 0x2,

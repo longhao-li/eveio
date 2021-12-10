@@ -2,6 +2,7 @@
 #define EVEIO_STRING_HPP
 
 #include "eveio/Allocator.hpp"
+
 #include <string>
 #include <string_view>
 

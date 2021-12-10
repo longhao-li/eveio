@@ -10,6 +10,8 @@
 #  include <fcntl.h>
 #  include <netinet/in.h>
 #  include <netinet/tcp.h>
+#  include <sys/socket.h>
+#  include <sys/types.h>
 #  include <unistd.h>
 #endif
 

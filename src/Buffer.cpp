@@ -7,7 +7,7 @@
 using namespace eveio;
 using namespace eveio::net;
 
-static constexpr const int DefaultBufSize = 65536;
+static constexpr const int DEFAULT_BUFFER_SIZE = 65536;
 
 void eveio::net::Buffer::Append(const void *data, size_t byte) noexcept {
   storage.reserve(tail + byte);
@@ -15,20 +15,19 @@ void eveio::net::Buffer::Append(const void *data, size_t byte) noexcept {
   tail += byte;
 }
 
-bool eveio::net::Buffer::ReadFromSocket(detail::native_socket_type sock,
-                                        int &tot_read) noexcept {
-  char buf[DefaultBufSize]{};
+bool eveio::net::Buffer::ReadFromSocket(native_socket_type sock,
+                                        int64_t &tot_read) noexcept {
+  char buf[DEFAULT_BUFFER_SIZE]{};
   tot_read = 0;
-  int byte_read = 0;
+  int64_t byte_read = 0;
 
   for (;;) {
-    byte_read = detail::socket_read(sock, buf, sizeof(buf));
-    int saved_errno = errno;
+    byte_read = socket_read(sock, buf, sizeof(buf));
 
     if (byte_read > 0) {
-      Append(buf, byte_read);
+      Append(buf, static_cast<size_t>(byte_read));
       tot_read += byte_read;
-      if (byte_read < DefaultBufSize)
+      if (byte_read < DEFAULT_BUFFER_SIZE)
         return true;
     } else {
       if (byte_read < 0)

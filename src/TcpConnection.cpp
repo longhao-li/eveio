@@ -9,12 +9,12 @@ using namespace eveio::net;
 Result<TcpConnection>
 eveio::net::TcpConnection::Connect(const InetAddr &peer) noexcept {
   native_socket_type conn_sock =
-      detail::socket(peer.GetFamily(), SOCK_STREAM, 0);
-  if (conn_sock == InvalidSocket)
+      socket_create(peer.GetFamily(), SOCK_STREAM, 0);
+  if (conn_sock == INVALID_NATIVE_SOCKET)
     return Result<TcpConnection>::Error(std::strerror(errno));
 
   struct sockaddr_in6 addr;
-  if (!detail::connect(
+  if (!socket_connect(
           conn_sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)))
     return Result<TcpConnection>::Error(std::strerror(errno));
 
@@ -23,42 +23,43 @@ eveio::net::TcpConnection::Connect(const InetAddr &peer) noexcept {
 
 eveio::net::TcpConnection::TcpConnection(TcpConnection &&other) noexcept
     : conn_handle(other.conn_handle),
-      create_time(other.create_time),
-      peer_addr(other.peer_addr) {
-  other.conn_handle = InvalidSocket;
+      peer_addr(other.peer_addr),
+      create_time(other.create_time) {
+  other.conn_handle = INVALID_NATIVE_SOCKET;
 }
 
 TcpConnection &
 eveio::net::TcpConnection::operator=(TcpConnection &&other) noexcept {
-  if (conn_handle != InvalidSocket)
-    detail::close_socket(conn_handle);
+  if (conn_handle != INVALID_NATIVE_SOCKET)
+    socket_close(conn_handle);
   conn_handle = other.conn_handle;
   create_time = other.create_time;
   peer_addr = other.peer_addr;
-  other.conn_handle = InvalidSocket;
+  other.conn_handle = INVALID_NATIVE_SOCKET;
   return (*this);
 }
 
 eveio::net::TcpConnection::~TcpConnection() noexcept {
-  if (conn_handle != InvalidSocket)
-    detail::close_socket(conn_handle);
+  if (conn_handle != INVALID_NATIVE_SOCKET)
+    socket_close(conn_handle);
 }
 
-int eveio::net::TcpConnection::Send(StringRef data) const noexcept {
-  return detail::socket_write(conn_handle, data.data(), data.size());
+int64_t eveio::net::TcpConnection::Send(StringRef data) const noexcept {
+  return socket_write(conn_handle, data.data(), data.size());
 }
 
-int eveio::net::TcpConnection::Send(const void *buf,
-                                    size_t byte) const noexcept {
-  return detail::socket_write(conn_handle, buf, byte);
+int64_t eveio::net::TcpConnection::Send(const void *buf,
+                                        size_t byte) const noexcept {
+  return socket_write(conn_handle, buf, byte);
 }
 
-int eveio::net::TcpConnection::Receive(void *buf, size_t cap) const noexcept {
-  return detail::socket_read(conn_handle, buf, cap);
+int64_t eveio::net::TcpConnection::Receive(void *buf,
+                                           size_t cap) const noexcept {
+  return socket_read(conn_handle, buf, cap);
 }
 
 void eveio::net::TcpConnection::CloseWrite() const noexcept {
-  if (!detail::close_tcp_write(conn_handle))
+  if (!socket_close_tcp_write(conn_handle))
     SPDLOG_ERROR("failed to close write for socket {}: {}.",
                  conn_handle,
                  std::strerror(errno));
@@ -66,14 +67,14 @@ void eveio::net::TcpConnection::CloseWrite() const noexcept {
 
 bool eveio::net::TcpConnection::IsClosed() const noexcept {
   struct sockaddr_in6 addr;
-  socklen_t len = peer_addr.Size();
+  socklen_t len = static_cast<socklen_t>(peer_addr.Size());
   int res = ::getpeername(
       conn_handle, reinterpret_cast<struct sockaddr *>(&addr), &len);
   return (res < 0 && errno == ENOTCONN);
 }
 
 bool eveio::net::TcpConnection::SetNoDelay(bool on) const noexcept {
-  if (!detail::set_tcp_nodelay(conn_handle, on)) {
+  if (!socket_set_tcp_nodelay(conn_handle, on)) {
     SPDLOG_ERROR("failed to set tcp nodelay for socket {}: {}.",
                  conn_handle,
                  std::strerror(errno));
@@ -83,7 +84,7 @@ bool eveio::net::TcpConnection::SetNoDelay(bool on) const noexcept {
 }
 
 bool eveio::net::TcpConnection::SetNonblock(bool on) const noexcept {
-  if (!detail::set_nonblock(conn_handle, on)) {
+  if (!socket_set_nonblock(conn_handle, on)) {
     SPDLOG_ERROR("failed to set connection non block for socket {}: {}.",
                  conn_handle,
                  std::strerror(errno));
@@ -93,18 +94,8 @@ bool eveio::net::TcpConnection::SetNonblock(bool on) const noexcept {
 }
 
 bool eveio::net::TcpConnection::SetKeepAlive(bool on) const noexcept {
-  if (!detail::set_keepalive(conn_handle, on)) {
+  if (!socket_set_keepalive(conn_handle, on)) {
     SPDLOG_ERROR("failed to set connection keep alive for socket {}: {}.",
-                 conn_handle,
-                 std::strerror(errno));
-    return false;
-  }
-  return true;
-}
-
-bool eveio::net::TcpConnection::SetNoSigPipe(bool on) const noexcept {
-  if (!detail::set_no_sigpipe(conn_handle, on)) {
-    SPDLOG_ERROR("failed to set connection no signal pipe for socket {}: {}.",
                  conn_handle,
                  std::strerror(errno));
     return false;

@@ -7,7 +7,7 @@
 #include "eveio/Vector.hpp"
 #include "eveio/WakeupHandle.hpp"
 
-#include "concurrentqueue.h"
+#include "eveio/concurrentqueue.h"
 
 #include <atomic>
 #include <functional>

@@ -4,11 +4,11 @@
 #include "eveio/net/TcpConnection.hpp"
 #include "eveio/net/TcpSocket.hpp"
 
-#include <memory>
 #include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <cstdlib>
+#include <memory>
 
 using namespace eveio;
 using namespace eveio::net;
@@ -42,14 +42,14 @@ using namespace eveio::net;
 /// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 /// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-eveio::net::Acceptor::Acceptor(EventLoop &loop,
+eveio::net::Acceptor::Acceptor(EventLoop &event_loop,
                                TcpSocket &&socket,
                                bool reuse_port) noexcept
     : std::enable_shared_from_this<Acceptor>(),
-      loop(&loop),
+      loop(&event_loop),
       is_listening(false),
       accept_socket(std::move(socket)),
-      channel(loop, accept_socket.native_socket()),
+      channel(event_loop, accept_socket.native_socket()),
       callback() {
   if (!accept_socket.SetReuseAddr(true)) {
     SPDLOG_CRITICAL("socket {} failed to set reuse addr. abort.",

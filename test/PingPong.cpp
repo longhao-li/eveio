@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
 
   EventLoop loop;
   EventLoopThreadPool io_context(std::thread::hardware_concurrency());
-  net::InetAddr addr = net::InetAddr::Ipv4Any(port);
+  net::InetAddr addr = net::InetAddr::Ipv4Any(static_cast<uint16_t>(port));
   EchoTcpServer server(loop, io_context, addr);
   loop.Loop();
   return 0;

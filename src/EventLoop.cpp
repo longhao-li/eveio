@@ -41,14 +41,14 @@ using namespace eveio;
 static thread_local eveio::EventLoop *LoopInCurrentThread = nullptr;
 
 eveio::EventLoop::EventLoop() noexcept
-    : is_looping(false),
+    : poller(),
+      is_looping(false),
       is_quit(false),
       is_handling_event(false),
       wakeup_handle(),
       wakeup_channel(),
-      poller(),
-      active_channels(),
       t_id(std::this_thread::get_id()),
+      active_channels(),
       pending_func() {
   if (LoopInCurrentThread != nullptr) {
     SPDLOG_CRITICAL("Another eventloop {} already exists in current thread {}.",

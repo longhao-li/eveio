@@ -115,9 +115,9 @@ public:
 
   void AddEventsToHandle(Events e) noexcept { events_to_handle |= e; }
 
-  uint32_t GetPollState() const noexcept { return poll_state; }
+  int32_t GetPollState() const noexcept { return poll_state; }
 
-  void SetPollState(uint32_t state) noexcept { poll_state = state; }
+  void SetPollState(int32_t state) noexcept { poll_state = state; }
 
   bool IsNoneEvent() const noexcept {
     return events_listening == event::NoneEvent;

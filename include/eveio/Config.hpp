@@ -11,12 +11,19 @@
 #  define EVEIO_OS_FREEBSD 1
 #endif
 
-#if defined(EVEIO_OS_LINUX)
-#  define EVEIO_POLLER_HAS_EPOLL 1
+#if defined(EVEIO_OS_LINUX) || defined(EVEIO_OS_FREEBSD) ||                    \
+    defined(EVEIO_OS_DARWIN)
+#  define EVEIO_HAS_POSIX
 #endif
 
-#if defined(EVEIO_OS_DARWIN) || defined(EVEIO_OS_FREEBSD)
+#if defined(EVEIO_OS_LINUX)
+#  define EVEIO_POLLER_HAS_EPOLL 1
+#elif defined(EVEIO_OS_DARWIN) || defined(EVEIO_OS_FREEBSD)
 #  define EVEIO_POLLER_HAS_KQUEUE 1
+#endif
+
+#if defined(EVEIO_OS_LINUX) || defined(EVEIO_OS_FREEBSD)
+#  define EVEIO_HAS_EVENTFD 1
 #endif
 
 #endif // EVEIO_CONFIG_HPP

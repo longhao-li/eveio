@@ -44,12 +44,12 @@ using namespace eveio::net;
 /// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 /// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-eveio::net::TcpServer::TcpServer(EventLoop &loop,
-                                 EventLoopThreadPool &io_context,
+eveio::net::TcpServer::TcpServer(EventLoop &event_loop,
+                                 EventLoopThreadPool &thread_poll,
                                  const InetAddr &listen_addr,
                                  bool reuse_addr) noexcept
-    : loop(&loop),
-      io_context(&io_context),
+    : loop(&event_loop),
+      io_context(&thread_poll),
       is_started(false),
       reuse_port(reuse_addr),
       acceptor(),

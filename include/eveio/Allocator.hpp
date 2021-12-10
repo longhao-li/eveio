@@ -35,7 +35,7 @@ struct Constructor {
   template <class... Args>
   T *operator()(Args &&...args) {
     T *p = Allocator<T>::allocate(1);
-    ::new ((void *)p) T(std::forward<Args>(args)...);
+    ::new (static_cast<void *>(p)) T(std::forward<Args>(args)...);
     return p;
   }
 };

@@ -8,7 +8,7 @@
 
 using namespace eveio;
 
-#if defined(EVEIO_OS_LINUX)
+#if defined(EVEIO_HAS_EVENTFD)
 
 #  include <fcntl.h>
 #  include <sys/eventfd.h>
@@ -45,7 +45,7 @@ void eveio::WakeupHandle::Respond() const noexcept {
   ::read(event_fd, &val, sizeof(val));
 }
 
-#elif defined(EVEIO_OS_DARWIN)
+#elif defined(EVEIO_HAS_POSIX)
 
 #  include <fcntl.h>
 #  include <unistd.h>

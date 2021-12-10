@@ -51,17 +51,17 @@ EventLoop *eveio::EventLoopThread::StartLoop() noexcept {
 }
 
 void eveio::EventLoopThread::Task() noexcept {
-  EventLoop loop;
+  EventLoop task_loop;
   if (init_callback)
-    init_callback(&loop);
+    init_callback(&task_loop);
 
   {
     std::lock_guard<std::mutex> lock(mutex);
-    this->loop = &loop;
+    this->loop = &task_loop;
     cond.notify_one();
   }
 
-  loop.Loop();
+  task_loop.Loop();
 
   std::lock_guard<std::mutex> lock(mutex);
   this->loop = nullptr;

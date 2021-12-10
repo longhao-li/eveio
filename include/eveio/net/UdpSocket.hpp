@@ -8,9 +8,9 @@
 namespace eveio {
 namespace net {
 
-class UdpSocket : public detail::SocketBase {
+class UdpSocket : public SocketBase {
   UdpSocket(native_socket_type h, const InetAddr &addr) noexcept
-      : detail::SocketBase(h, addr) {}
+      : SocketBase(h, addr) {}
 
 public:
   static Result<UdpSocket> Create(const InetAddr &local_addr) noexcept;
@@ -20,11 +20,10 @@ public:
 
   ~UdpSocket() noexcept = default;
 
-  int SendTo(StringRef data, const InetAddr &target) const noexcept;
-  int SendTo(const void *data,
-             size_t size,
-             const InetAddr &target) const noexcept;
-  int ReceiveFrom(void *buf, size_t cap, InetAddr &peer) const noexcept;
+  int64_t SendTo(StringRef data, const InetAddr &target) const noexcept;
+  int64_t
+  SendTo(const void *data, size_t size, const InetAddr &target) const noexcept;
+  int64_t ReceiveFrom(void *buf, size_t cap, InetAddr &peer) const noexcept;
 };
 
 } // namespace net

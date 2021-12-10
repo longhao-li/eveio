@@ -11,11 +11,6 @@ namespace eveio {
 namespace net {
 
 class TcpConnection {
-public:
-  typedef detail::native_socket_type native_socket_type;
-  static constexpr native_socket_type InvalidSocket = detail::InvalidSocket;
-
-private:
   native_socket_type conn_handle;
   InetAddr peer_addr;
   Time create_time;
@@ -37,9 +32,9 @@ public:
   Time CreateTime() const noexcept { return create_time; }
   const InetAddr &PeerAddr() const noexcept { return peer_addr; }
 
-  int Send(StringRef data) const noexcept;
-  int Send(const void *buf, size_t byte) const noexcept;
-  int Receive(void *buf, size_t cap) const noexcept;
+  int64_t Send(StringRef data) const noexcept;
+  int64_t Send(const void *buf, size_t byte) const noexcept;
+  int64_t Receive(void *buf, size_t cap) const noexcept;
 
   void CloseWrite() const noexcept;
   bool IsClosed() const noexcept;
@@ -47,7 +42,6 @@ public:
   bool SetNoDelay(bool on) const noexcept;
   bool SetNonblock(bool on) const noexcept;
   bool SetKeepAlive(bool on) const noexcept;
-  bool SetNoSigPipe(bool on) const noexcept;
 
   native_socket_type native_socket() const noexcept { return conn_handle; }
   operator native_socket_type() const noexcept { return conn_handle; }
