@@ -44,12 +44,12 @@ using namespace eveio::net;
 /// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 eveio::net::AsyncTcpConnection::AsyncTcpConnection(
-    EventLoop &loop, TcpConnection &&connect) noexcept
+    EventLoop &event_loop, TcpConnection &&connect) noexcept
     : std::enable_shared_from_this<AsyncTcpConnection>(),
       guard_self(),
-      loop(&loop),
+      loop(&event_loop),
       conn(std::move(connect)),
-      channel(loop, conn.native_socket()),
+      channel(event_loop, conn.native_socket()),
       read_buffer(),
       write_buffer(),
       message_callback(),
@@ -130,7 +130,7 @@ void eveio::net::AsyncTcpConnection::Destroy() noexcept {
 
 void eveio::net::AsyncTcpConnection::HandleRead(Time time) noexcept {
   assert(loop->IsInLoopThread());
-  int byte_read = 0;
+  int64_t byte_read = 0;
 
   auto try_read = [this, time]() {
     if (read_buffer.Size() > 0) {

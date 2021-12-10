@@ -12,10 +12,10 @@
 using namespace eveio;
 using namespace eveio::net;
 
-eveio::net::UdpServer::UdpServer(EventLoop &loop,
+eveio::net::UdpServer::UdpServer(EventLoop &event_loop,
                                  const InetAddr &listen_addr,
                                  bool reuse_port) noexcept
-    : loop(&loop),
+    : loop(&event_loop),
       is_started(false),
       sock(),
       channel(),
@@ -45,7 +45,7 @@ eveio::net::UdpServer::UdpServer(EventLoop &loop,
     }
   }
 
-  channel = MakeShared<Channel>(loop, sock->native_socket());
+  channel = MakeShared<Channel>(*loop, sock->native_socket());
   channel->SetReadCallback([this](Time time) {
     FixedBuffer buf;
     InetAddr addr = InetAddr::Ipv4Any(0);

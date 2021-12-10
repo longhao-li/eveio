@@ -64,7 +64,7 @@ public:
   void SetPort(uint16_t port) noexcept;
   void SetIpv6ScopeID(uint32_t scope_id) noexcept;
 
-  uint8_t GetFamily() const noexcept { return addr4.sin_family; }
+  sa_family_t GetFamily() const noexcept { return addr4.sin_family; }
   bool IsIpv4() const noexcept { return GetFamily() == AF_INET; }
   bool IsIpv6() const noexcept { return GetFamily() == AF_INET6; }
 

@@ -65,7 +65,7 @@ static constexpr Events MapEvent(uint32_t ep_event) noexcept {
 }
 
 static constexpr uint32_t UnmapEvent(Events e) noexcept {
-  int res = 0;
+  uint32_t res = 0;
   if (e & event::ReadEvent)
     res |= (EPOLLIN | EPOLLPRI | EPOLLRDHUP);
   if (e & event::WriteEvent)
@@ -94,7 +94,7 @@ Time eveio::Poller::Poll(Time::Milliseconds timeout,
   int num_events = ::epoll_wait(ep_fd,
                                 std::addressof(events[0]),
                                 static_cast<int>(events.size()),
-                                timeout.count());
+                                static_cast<int>(timeout.count()));
   int saved_errno = errno;
   Time now = Time::Now();
 
@@ -114,7 +114,7 @@ Time eveio::Poller::Poll(Time::Milliseconds timeout,
 
 void eveio::Poller::FillActiveChannels(
     int num_events, ChannelList &active_channels) const noexcept {
-  for (int i = 0; i < num_events; i++) {
+  for (size_t i = 0; i < static_cast<size_t>(num_events); i++) {
     Channel *channel = static_cast<Channel *>(events[i].data.ptr);
     channel->SetEventsToHandle(MapEvent(events[i].events));
     active_channels.push_back(channel);

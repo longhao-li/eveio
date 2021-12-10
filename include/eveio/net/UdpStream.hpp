@@ -16,7 +16,7 @@ public:
 private:
   native_socket_type sock;
 
-  UdpStream(native_socket_type sock) noexcept : sock(sock) {}
+  UdpStream(native_socket_type s) noexcept : sock(s) {}
 
 public:
   static Result<UdpStream> Ipv4Stream() noexcept;
@@ -31,9 +31,8 @@ public:
   ~UdpStream() noexcept;
 
   int64_t SendTo(StringRef data, const InetAddr &target) const noexcept;
-  int64_t SendTo(const void *data,
-             size_t size,
-             const InetAddr &target) const noexcept;
+  int64_t
+  SendTo(const void *data, size_t size, const InetAddr &target) const noexcept;
   int64_t ReceiveFrom(void *buf, size_t cap, InetAddr &peer) const noexcept;
 
   bool SetNonblock(bool on) const noexcept;

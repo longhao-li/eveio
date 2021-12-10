@@ -16,7 +16,7 @@ void eveio::net::Buffer::Append(const void *data, size_t byte) noexcept {
 }
 
 bool eveio::net::Buffer::ReadFromSocket(detail::native_socket_type sock,
-                                        int &tot_read) noexcept {
+                                        int64_t &tot_read) noexcept {
   char buf[DefaultBufSize]{};
   tot_read = 0;
   int64_t byte_read = 0;

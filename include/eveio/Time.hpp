@@ -37,8 +37,8 @@ public:
   Time() noexcept : time_point(Nanoseconds(0)) {}
 
   template <typename Duration>
-  constexpr Time(TimePoint<Duration> time_point) noexcept
-      : time_point(time_point_cast<Nanoseconds>(time_point)) {}
+  constexpr Time(TimePoint<Duration> tp) noexcept
+      : time_point(time_point_cast<Nanoseconds>(tp)) {}
 
   explicit Time(std::uint64_t micro_secs_since_epoch) noexcept
       : time_point(Microseconds(micro_secs_since_epoch)) {}

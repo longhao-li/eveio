@@ -62,7 +62,7 @@ public:
   void Append(StringRef data) noexcept { Append(data.data(), data.size()); }
 
   // For internal usage. Do not call outside.
-  bool ReadFromSocket(detail::native_socket_type sock, int &tot_read) noexcept;
+  bool ReadFromSocket(detail::native_socket_type sock, int64_t &tot_read) noexcept;
 };
 
 template <size_t Cap = 4096>

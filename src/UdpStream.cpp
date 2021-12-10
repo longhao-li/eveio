@@ -3,6 +3,8 @@
 #include "eveio/net/Socket.hpp"
 #include "eveio/net/UdpSocket.hpp"
 
+#include <cstring>
+
 using namespace eveio;
 using namespace eveio::net;
 
