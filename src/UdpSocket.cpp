@@ -8,14 +8,14 @@ using namespace eveio;
 using namespace eveio::net;
 
 Result<UdpSocket> eveio::net::UdpSocket::Create(const InetAddr &addr) noexcept {
-  native_socket_type sock = detail::socket(addr.GetFamily(), SOCK_DGRAM, 0);
-  if (sock == InvalidSocket)
+  native_socket_type sock = socket_create(addr.GetFamily(), SOCK_DGRAM, 0);
+  if (sock == INVALID_NATIVE_SOCKET)
     return Result<UdpSocket>::Error(std::strerror(errno));
 
-  if (!detail::bind(
+  if (!socket_bind(
           sock, addr.AsSockaddr(), static_cast<socklen_t>(addr.Size()))) {
     int saved_errno = errno;
-    detail::close_socket(sock);
+    socket_close(sock);
     return Result<UdpSocket>::Error(std::strerror(saved_errno));
   }
   return Result<UdpSocket>::Ok(UdpSocket(sock, addr));
@@ -29,11 +29,11 @@ int64_t eveio::net::UdpSocket::SendTo(StringRef data,
 int64_t eveio::net::UdpSocket::SendTo(const void *data,
                                       size_t size,
                                       const InetAddr &target) const noexcept {
-  return detail::socket_sendto(sock,
-                               data,
-                               size,
-                               target.AsSockaddr(),
-                               static_cast<socklen_t>(target.Size()));
+  return socket_sendto(sock,
+                       data,
+                       size,
+                       target.AsSockaddr(),
+                       static_cast<socklen_t>(target.Size()));
 }
 
 int64_t eveio::net::UdpSocket::ReceiveFrom(void *buf,
@@ -41,5 +41,5 @@ int64_t eveio::net::UdpSocket::ReceiveFrom(void *buf,
                                            InetAddr &peer) const noexcept {
   struct sockaddr *peer_addr = const_cast<struct sockaddr *>(peer.AsSockaddr());
   socklen_t len = sizeof(peer);
-  return detail::socket_recvfrom(sock, buf, cap, peer_addr, &len);
+  return socket_recvfrom(sock, buf, cap, peer_addr, &len);
 }

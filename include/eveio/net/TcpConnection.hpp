@@ -11,11 +11,6 @@ namespace eveio {
 namespace net {
 
 class TcpConnection {
-public:
-  typedef detail::native_socket_type native_socket_type;
-  static constexpr native_socket_type InvalidSocket = detail::InvalidSocket;
-
-private:
   native_socket_type conn_handle;
   InetAddr peer_addr;
   Time create_time;

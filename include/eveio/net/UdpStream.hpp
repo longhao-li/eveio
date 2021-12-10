@@ -8,12 +8,6 @@ namespace eveio {
 namespace net {
 
 class UdpStream {
-public:
-  typedef detail::native_socket_type native_socket_type;
-  static constexpr const native_socket_type InvalidSocket =
-      detail::InvalidSocket;
-
-private:
   native_socket_type sock;
 
   UdpStream(native_socket_type s) noexcept : sock(s) {}

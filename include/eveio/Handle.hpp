@@ -11,39 +11,38 @@
 #  error "unsupported operating system."
 #endif
 
-namespace eveio {
-namespace detail {
-
 #if defined(EVEIO_OS_WIN32)
+namespace eveio {
+
 typedef void *native_handle_type;
+static constexpr const native_handle_type INVALID_NATIVE_HANDLE =
+    INVALID_HANDLE_VALUE;
 
 inline bool close_handle(native_handle_type h) noexcept {
   return ::CloseHandle(h);
 }
 
+} // namespace eveio
 #else
+namespace eveio {
 
 typedef int native_handle_type;
+static constexpr const native_handle_type INVALID_NATIVE_HANDLE = -1;
 
-inline bool close_handle(native_handle_type h) noexcept {
+inline bool handle_close(native_handle_type h) noexcept {
   return (::close(h) == 0);
 }
-#endif
 
-} // namespace detail
 } // namespace eveio
+#endif
 
 namespace eveio {
 
 class Handle {
-public:
-  typedef detail::native_handle_type native_handle_type;
-
-private:
   native_handle_type h;
 
 public:
-  Handle() noexcept = default;
+  Handle() noexcept : h(INVALID_NATIVE_HANDLE) {}
   constexpr Handle(native_handle_type handle) noexcept : h(handle) {}
 
   constexpr Handle(const Handle &) noexcept = default;
@@ -54,7 +53,7 @@ public:
   constexpr native_handle_type native_handle() const noexcept { return h; }
 
   static inline bool Close(Handle h) noexcept {
-    return detail::close_handle(h.native_handle());
+    return handle_close(h.native_handle());
   }
 
   constexpr operator native_handle_type() const noexcept { return h; }

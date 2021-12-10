@@ -15,14 +15,14 @@ void eveio::net::Buffer::Append(const void *data, size_t byte) noexcept {
   tail += byte;
 }
 
-bool eveio::net::Buffer::ReadFromSocket(detail::native_socket_type sock,
+bool eveio::net::Buffer::ReadFromSocket(native_socket_type sock,
                                         int64_t &tot_read) noexcept {
   char buf[DefaultBufSize]{};
   tot_read = 0;
   int64_t byte_read = 0;
 
   for (;;) {
-    byte_read = detail::socket_read(sock, buf, sizeof(buf));
+    byte_read = socket_read(sock, buf, sizeof(buf));
 
     if (byte_read > 0) {
       Append(buf, static_cast<size_t>(byte_read));

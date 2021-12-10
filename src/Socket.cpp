@@ -7,31 +7,29 @@
 
 using namespace eveio;
 using namespace eveio::net;
-using namespace eveio::net::detail;
 
-eveio::net::detail::SocketBase::SocketBase(detail::SocketBase &&other) noexcept
+eveio::net::SocketBase::SocketBase(SocketBase &&other) noexcept
     : sock(other.sock), local_addr(other.local_addr) {
-  other.sock = InvalidSocket;
+  other.sock = INVALID_NATIVE_SOCKET;
 }
 
-SocketBase &
-eveio::net::detail::SocketBase::operator=(SocketBase &&other) noexcept {
-  if (sock != InvalidSocket)
-    detail::close_socket(sock);
+SocketBase &eveio::net::SocketBase::operator=(SocketBase &&other) noexcept {
+  if (sock != INVALID_NATIVE_SOCKET)
+    socket_close(sock);
 
   sock = other.sock;
   local_addr = other.local_addr;
-  other.sock = InvalidSocket;
+  other.sock = INVALID_NATIVE_SOCKET;
   return (*this);
 }
 
-eveio::net::detail::SocketBase::~SocketBase() noexcept {
-  if (sock != InvalidSocket)
-    detail::close_socket(sock);
+eveio::net::SocketBase::~SocketBase() noexcept {
+  if (sock != INVALID_NATIVE_SOCKET)
+    socket_close(sock);
 }
 
-bool eveio::net::detail::SocketBase::SetNonblock(bool on) const noexcept {
-  if (!detail::set_nonblock(sock, on)) {
+bool eveio::net::SocketBase::SetNonblock(bool on) const noexcept {
+  if (!socket_set_nonblock(sock, on)) {
     SPDLOG_ERROR("failed to set socket nonblock for {}: {}.",
                  sock,
                  std::strerror(errno));
@@ -40,8 +38,8 @@ bool eveio::net::detail::SocketBase::SetNonblock(bool on) const noexcept {
   return true;
 }
 
-bool eveio::net::detail::SocketBase::SetReuseAddr(bool on) const noexcept {
-  if (!detail::set_reuseaddr(sock, on)) {
+bool eveio::net::SocketBase::SetReuseAddr(bool on) const noexcept {
+  if (!socket_set_reuseaddr(sock, on)) {
     SPDLOG_ERROR("failed to set socket reuse addr for {}: {}.",
                  sock,
                  std::strerror(errno));
@@ -50,8 +48,8 @@ bool eveio::net::detail::SocketBase::SetReuseAddr(bool on) const noexcept {
   return true;
 }
 
-bool eveio::net::detail::SocketBase::SetReusePort(bool on) const noexcept {
-  if (!detail::set_reuseport(sock, on)) {
+bool eveio::net::SocketBase::SetReusePort(bool on) const noexcept {
+  if (!socket_set_reuseport(sock, on)) {
     SPDLOG_ERROR("failed to set socket reuse port for {}: {}.",
                  sock,
                  std::strerror(errno));

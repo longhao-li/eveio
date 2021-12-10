@@ -91,7 +91,7 @@ bool eveio::net::UdpServer::AsyncSend(StringRef data,
 bool eveio::net::UdpServer::AsyncSend(const void *data,
                                       size_t sz,
                                       const InetAddr &peer) noexcept {
-  if (sz > FixedBuffer::BufferCapacity)
+  if (sz > FixedBuffer::BUFFER_CAPACITY)
     return false;
   {
     std::lock_guard<std::mutex> lock(mutex);

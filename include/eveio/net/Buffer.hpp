@@ -62,7 +62,7 @@ public:
   void Append(StringRef data) noexcept { Append(data.data(), data.size()); }
 
   // For internal usage. Do not call outside.
-  bool ReadFromSocket(detail::native_socket_type sock, int64_t &tot_read) noexcept;
+  bool ReadFromSocket(native_socket_type sock, int64_t &tot_read) noexcept;
 };
 
 template <size_t Cap = 4096>
@@ -71,7 +71,7 @@ class BasicFixedBuffer {
   size_t size;
 
 public:
-  static constexpr const size_t BufferCapacity = Cap;
+  static constexpr const size_t BUFFER_CAPACITY = Cap;
 
   constexpr BasicFixedBuffer() noexcept : size(0) {}
   constexpr BasicFixedBuffer(const void *data, size_t sz) noexcept

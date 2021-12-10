@@ -11,9 +11,9 @@
 namespace eveio {
 namespace net {
 
-class TcpSocket : public detail::SocketBase {
+class TcpSocket : public SocketBase {
   TcpSocket(native_socket_type h, const InetAddr &addr) noexcept
-      : detail::SocketBase(h, addr) {}
+      : SocketBase(h, addr) {}
 
 public:
   static Result<TcpSocket> Create(const InetAddr &local_addr) noexcept;

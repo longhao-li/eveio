@@ -87,8 +87,6 @@ public:
   }
 
 public:
-  typedef detail::native_socket_type native_socket_type;
-
   AsyncTcpConnection(EventLoop &loop, TcpConnection &&connect) noexcept;
 
   AsyncTcpConnection(const AsyncTcpConnection &) = delete;
