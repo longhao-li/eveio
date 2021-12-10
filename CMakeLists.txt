@@ -55,6 +55,7 @@ if(EVEIO_BUILD_TEST)
 endif()
 
 message("eveio version: ${eveio_VERSION}")
+message("cxx compiler: ${CMAKE_CXX_COMPILER}")
 message("cxx flags: ${CMAKE_CXX_FLAGS}")
 message("build tests: ${EVEIO_BUILD_TEST}")
 message("install prefix: ${CMAKE_INSTALL_PREFIX}")
