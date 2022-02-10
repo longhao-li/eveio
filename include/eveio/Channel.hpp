@@ -1,73 +1,66 @@
+/// Copyright (c) 2021 Li Longhao
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
+
 #ifndef EVEIO_CHANNEL_HPP
 #define EVEIO_CHANNEL_HPP
 
+#include "eveio/Config.hpp"
 #include "eveio/Event.hpp"
-#include "eveio/Handle.hpp"
-#include "eveio/SmartPtr.hpp"
-#include "eveio/Time.hpp"
 
+#include <cassert>
+#include <chrono>
 #include <functional>
 #include <memory>
 
-/// Muduo - A reactor-based C++ network library for Linux
-/// Copyright (c) 2010, Shuo Chen.  All rights reserved.
-/// http://code.google.com/p/muduo/
-///
-/// Redistribution and use in source and binary forms, with or without
-/// modification, are permitted provided that the following conditions
-/// are met:
-///
-///   * Redistributions of source code must retain the above copyright
-/// notice, this list of conditions and the following disclaimer.
-///   * Redistributions in binary form must reproduce the above copyright
-/// notice, this list of conditions and the following disclaimer in the
-/// documentation and/or other materials provided with the distribution.
-///   * Neither the name of Shuo Chen nor the names of other contributors
-/// may be used to endorse or promote products derived from this software
-/// without specific prior written permission.
-///
-/// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-/// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-/// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-/// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-/// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-/// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-/// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-/// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-/// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-/// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-/// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 namespace eveio {
 
-class EventLoop;
+class Eventloop;
 
 class Channel {
 public:
-  typedef std::function<void()> EventCallback;
-  typedef std::function<void(eveio::Time)> ReadEventCallback;
+  using EventCallback = std::function<void()>;
+  using ReadEventCallback =
+      std::function<void(std::chrono::system_clock::time_point)>;
 
 private:
-  EventLoop *const loop;
-  const Handle handle;
+  Eventloop *const loop;
+  const handle_t handle;
 
-  WeakPtr<void> tied_object;
-  bool is_tied;
-  bool is_handling_event;
-  bool is_added_to_loop;
+  bool isTied;
+  bool isHandlingEvent;
+  bool isAddedToLoop;
+  std::weak_ptr<void> tiedObject;
 
-  Events events_listening;
-  Events events_to_handle;
+  Event eventsListing;
+  Event eventsToHandle;
 
-  int32_t poll_state;
+  int32_t pollerState;
 
-  ReadEventCallback read_callback;
-  EventCallback write_callback;
-  EventCallback close_callback;
-  EventCallback error_callback;
+  ReadEventCallback readCallback;
+  EventCallback writeCallback;
+  EventCallback errorCallback;
+  EventCallback closeCallback;
 
 public:
-  Channel(EventLoop &loop, Handle hd) noexcept;
+  Channel(Eventloop &loop, handle_t fd) noexcept;
+  ~Channel() noexcept;
 
   Channel(const Channel &) = delete;
   Channel &operator=(const Channel &) = delete;
@@ -75,100 +68,100 @@ public:
   Channel(Channel &&) = delete;
   Channel &operator=(Channel &&) = delete;
 
-  ~Channel() noexcept;
-
-  template <class Fn, class... Args>
-  void SetReadCallback(Fn &&fn, Args &&...args) {
-    read_callback = std::bind(std::forward<Fn>(fn),
-                              std::forward<Args>(args)...,
-                              std::placeholders::_1);
+  template <class Fn>
+  void SetReadCallback(Fn &&fn) noexcept {
+    readCallback = ReadEventCallback(std::forward<Fn>(fn));
   }
 
-  template <class Fn, class... Args>
-  void SetWriteCallback(Fn &&fn, Args &&...args) {
-    write_callback =
-        std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...);
+  template <class Fn>
+  void SetWriteCallback(Fn &&fn) noexcept {
+    writeCallback = EventCallback(std::forward<Fn>(fn));
   }
 
-  template <class Fn, class... Args>
-  void SetCloseCallback(Fn &&fn, Args &&...args) {
-    close_callback =
-        std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...);
+  template <class Fn>
+  void SetErrorCallback(Fn &&fn) noexcept {
+    errorCallback = EventCallback(std::forward<Fn>(fn));
   }
 
-  template <class Fn, class... Args>
-  void SetErrorCallback(Fn &&fn, Args &&...args) {
-    error_callback =
-        std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...);
+  template <class Fn>
+  void SetCloseCallback(Fn &&fn) noexcept {
+    closeCallback = EventCallback(std::forward<Fn>(fn));
   }
 
-  Handle GetHandle() const noexcept { return handle; }
+  handle_t GetHandle() const noexcept { return handle; }
+  Event EventsListening() const noexcept { return eventsListing; }
 
-  Events ListeningEvents() const noexcept { return events_listening; }
-
-  void Tie(WeakPtr<void> p) noexcept {
-    is_tied = true;
-    tied_object = p;
+  /// If this channel relies on object, tie it to ensure callbacks runs
+  /// currectly.
+  void Tie(std::weak_ptr<void> p) noexcept {
+    isTied = true;
+    tiedObject = p;
   }
 
-  void SetEventsToHandle(Events e) noexcept { events_to_handle = e; }
+  /// For internal usage.
+  /// Used by poller.
+  void SetEventsToHandle(Event e) noexcept { eventsToHandle = e; }
 
-  void AddEventsToHandle(Events e) noexcept { events_to_handle |= e; }
+  /// For internal usage.
+  /// Used by poller.
+  void AddEventsToHandle(Event e) noexcept { eventsToHandle |= e; }
 
-  int32_t GetPollState() const noexcept { return poll_state; }
+  /// For internal usage.
+  /// Used by poller.
+  int32_t GetPollerState() const noexcept { return pollerState; }
 
-  void SetPollState(int32_t state) noexcept { poll_state = state; }
+  /// For internal usage.
+  /// Used by poller.
+  void SetPollerState(int32_t state) noexcept { pollerState = state; }
 
-  bool IsNoneEvent() const noexcept {
-    return events_listening == event::NoneEvent;
-  }
+  bool IsNoneEvent() const noexcept { return EventsListening() == EVENT_NONE; }
+  bool IsReading() const noexcept { return (EventsListening() & EVENT_READ); }
+  bool IsWriting() const noexcept { return (EventsListening() & EVENT_WRITE); }
 
-  bool IsReading() const noexcept {
-    return (events_listening & event::ReadEvent);
-  }
+  /// For internal usage.
+  /// Update state in poller.
+  /// DO NOT call this method manually.
+  void Update();
 
-  bool IsWriting() const noexcept {
-    return (events_listening & event::WriteEvent);
-  }
+  /// For internal usage.
+  /// Unregist from poller.
+  /// DO NOT call this method manually.
+  void Unregist();
 
   void EnableReading() noexcept {
-    events_listening |= event::ReadEvent;
-    Update();
-  }
-
-  void EnableWriting() noexcept {
-    events_listening |= event::WriteEvent;
+    eventsListing |= EVENT_READ;
     Update();
   }
 
   void DisableReading() noexcept {
-    events_listening &= (~event::ReadEvent);
+    eventsListing &= ~EVENT_READ;
+    Update();
+  }
+
+  void EnableWriting() noexcept {
+    eventsListing |= EVENT_WRITE;
     Update();
   }
 
   void DisableWriting() noexcept {
-    events_listening &= (~event::WriteEvent);
+    eventsListing &= ~EVENT_WRITE;
     Update();
   }
 
   void DisableAll() noexcept {
-    events_listening = event::NoneEvent;
+    eventsListing = EVENT_NONE;
     Update();
   }
 
-  EventLoop &OwnerLoop() const noexcept { return *loop; }
+  Eventloop *GetOwnerLoop() const noexcept { return loop; }
 
-  bool IsRegisted() const noexcept;
-
-  // 内部使用，不要手动调用Update。
-  void Update() noexcept;
-
-  void Unregist() noexcept;
-
-  // 本函数本体不会抛出异常。考虑到callback可能抛出异常，没有加上noexcept。但是强烈建议不要抛出异常，因为无法catch。
-  void HandleEvent(Time recv_time);
+  /// For internal usage.
+  /// Handle all pending events.
+  /// Called by Eventloop.
+  /// DO NOT call tbis method manually.
+  void HandleEvent(std::chrono::system_clock::time_point recvTime);
 };
 
-} // namespace eveio
+}; // namespace eveio
 
 #endif // EVEIO_CHANNEL_HPP

@@ -18,51 +18,20 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#include "eveio/eveio.hpp"
+#ifndef EVEIO_EVEIO_HPP
+#define EVEIO_EVEIO_HPP
 
-#include <chrono>
-#include <cstdio>
-#include <memory>
+#include "eveio/AsyncTcpConnection.hpp"
+#include "eveio/Channel.hpp"
+#include "eveio/Config.hpp"
+#include "eveio/Eventloop.hpp"
+#include "eveio/EventloopThread.hpp"
+#include "eveio/EventloopThreadPool.hpp"
+#include "eveio/Exception.hpp"
+#include "eveio/InetAddress.hpp"
+#include "eveio/Poller.hpp"
+#include "eveio/Socket.hpp"
+#include "eveio/String.hpp"
+#include "eveio/TcpServer.hpp"
 
-using namespace eveio;
-
-class EchoServer {
-  TcpServer server;
-
-public:
-  EchoServer(Eventloop &loop, const InetAddress &addr) : server(loop, addr) {
-    server.SetMessageCallback(
-        [this](AsyncTcpConnection *conn,
-               AsyncTcpConnectionBuffer &input,
-               std::chrono::system_clock::time_point time) {
-          this->OnMessage(conn, input, time);
-        });
-    server.Start();
-  }
-
-  void OnMessage(AsyncTcpConnection *conn,
-                 AsyncTcpConnectionBuffer &input,
-                 std::chrono::system_clock::time_point) noexcept {
-    conn->AsyncSend(input.RetrieveAsString());
-  }
-};
-
-int main(int argc, char **argv) {
-  if (argc < 2) {
-    printf("Usage: %s port\n", argv[0]);
-    return -10;
-  }
-
-  int port = atoi(argv[1]);
-
-  try {
-    Eventloop loop;
-    InetAddress addr = InetAddress::Ipv4Any(static_cast<uint16_t>(port));
-    EchoServer server(loop, addr);
-    loop.Loop();
-  } catch (const Exception &e) {
-    printf("%s\n", e.what());
-  }
-
-  return 0;
-}
+#endif // EVEIO_EVEIO_HPP

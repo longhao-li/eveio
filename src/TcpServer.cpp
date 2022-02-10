@@ -1,98 +1,174 @@
-#include "eveio/net/TcpServer.hpp"
-#include "eveio/EventLoop.hpp"
-#include "eveio/SmartPtr.hpp"
-#include "eveio/net/Acceptor.hpp"
-#include "eveio/net/AsyncTcpConnection.hpp"
-#include "eveio/net/TcpSocket.hpp"
+/// Copyright (c) 2021 Li Longhao
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
 
-#include <spdlog/spdlog.h>
+#include "eveio/TcpServer.hpp"
+#include "eveio/Eventloop.hpp"
+#include "eveio/EventloopThreadPool.hpp"
+#include "eveio/Exception.hpp"
+#include "eveio/InetAddress.hpp"
 
+#include <algorithm>
 #include <atomic>
-#include <cstddef>
-#include <cstdlib>
+#include <chrono>
 #include <memory>
 
 using namespace eveio;
-using namespace eveio::net;
 
-/// Muduo - A reactor-based C++ network library for Linux
-/// Copyright (c) 2010, Shuo Chen.  All rights reserved.
-/// http://code.google.com/p/muduo/
-///
-/// Redistribution and use in source and binary forms, with or without
-/// modification, are permitted provided that the following conditions
-/// are met:
-///
-///   * Redistributions of source code must retain the above copyright
-/// notice, this list of conditions and the following disclaimer.
-///   * Redistributions in binary form must reproduce the above copyright
-/// notice, this list of conditions and the following disclaimer in the
-/// documentation and/or other materials provided with the distribution.
-///   * Neither the name of Shuo Chen nor the names of other contributors
-/// may be used to endorse or promote products derived from this software
-/// without specific prior written permission.
-///
-/// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-/// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-/// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-/// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-/// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-/// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-/// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-/// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-/// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-/// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-/// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+eveio::Acceptor::Acceptor(Eventloop &ownerLoop,
+                          const InetAddress &listenAddr,
+                          bool reusePort)
+    : loop(&ownerLoop),
+      isListening(false),
+      acceptSocket(listenAddr),
+      channel(ownerLoop, reinterpret_cast<handle_t>(acceptSocket.GetSocket())),
+      newConnectionCallback() {
+  if (!acceptSocket.SetReuseAddr(true)) {
+    throw SystemErrorException(__FILENAME__,
+                               __LINE__,
+                               __func__,
+                               "Failed to set reuse addr for " +
+                                   listenAddr.GetIPWithPort() + ": " +
+                                   std::strerror(errno));
+  }
 
-eveio::net::TcpServer::TcpServer(EventLoop &event_loop,
-                                 EventLoopThreadPool &thread_poll,
-                                 const InetAddr &listen_addr,
-                                 bool reuse_addr) noexcept
-    : loop(&event_loop),
-      io_context(&thread_poll),
-      is_started(false),
-      reuse_port(reuse_addr),
-      acceptor(),
-      connection_callback(),
-      message_callback(),
-      write_complete_callback(),
-      close_callback(),
-      local_addr(listen_addr) {}
+  acceptSocket.SetReusePort(reusePort);
 
-eveio::net::TcpServer::~TcpServer() noexcept {
-  loop->RunInLoop(&Acceptor::Quit, acceptor);
+  if (!acceptSocket.SetNonblock(true)) {
+    throw SystemErrorException(__FILENAME__,
+                               __LINE__,
+                               __func__,
+                               "Failed to set accept socket " +
+                                   std::to_string(acceptSocket.GetSocket()) +
+                                   " nonblock: " + std::strerror(errno));
+  }
+
+  channel.SetReadCallback([this](std::chrono::system_clock::time_point) {
+    assert(loop->IsInLoopThread());
+    auto conn = acceptSocket.Accept();
+    if (conn.GetSocket() != INVALID_SOCKET && newConnectionCallback) {
+      newConnectionCallback(std::move(conn));
+    }
+  });
 }
 
-void eveio::net::TcpServer::Start() noexcept {
-  if (is_started.exchange(true, std::memory_order_relaxed) == false) {
-    auto sock_res = TcpSocket::Create(local_addr);
-    if (!sock_res.IsValid()) {
-      SPDLOG_CRITICAL("failed to create tcp socket: {}. listen addr: {}.",
-                      sock_res.GetError(),
-                      local_addr.GetIpWithPort());
-      std::abort();
-    }
+eveio::Acceptor::~Acceptor() noexcept { assert(channel.IsNoneEvent()); }
 
-    io_context->Start();
-
-    acceptor =
-        MakeShared<Acceptor>(*loop, std::move(sock_res.Unwarp()), reuse_port);
-
-    acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
-      auto async_conn = MakeShared<AsyncTcpConnection>(
-          *(this->io_context->GetNextLoop()), std::move(conn));
-      async_conn->Initialize();
-
-      if (this->message_callback)
-        async_conn->SetMessageCallback(this->message_callback);
-      if (this->write_complete_callback)
-        async_conn->SetWriteCompleteCallback(this->write_complete_callback);
-      if (this->close_callback)
-        async_conn->SetCloseCallback(this->close_callback);
-      if (connection_callback)
-        connection_callback(async_conn.get());
-    });
-
-    loop->RunInLoop([this]() { acceptor->Listen(); });
+void eveio::Acceptor::Listen() {
+  assert(loop->IsInLoopThread());
+  isListening = true;
+  if (!acceptSocket.Listen(SOMAXCONN)) {
+    throw SystemErrorException(
+        __FILENAME__,
+        __LINE__,
+        __func__,
+        "socket " + std::to_string(acceptSocket.GetSocket()) +
+            " failed to listen: " + std::strerror(errno));
   }
+  loop->RunInLoop([this]() { this->channel.EnableReading(); });
+}
+
+void eveio::Acceptor::Quit() noexcept {
+  assert(loop->IsInLoopThread());
+  channel.DisableAll();
+  channel.Unregist();
+  isListening = false;
+}
+
+eveio::TcpServer::TcpServer(Eventloop &loop, const InetAddress &listenAddr)
+    : acceptorLoop(&loop),
+      ioContext(std::make_shared<EventloopThreadPool>(
+          std::max<size_t>(std::thread::hardware_concurrency(), 1) - 1)),
+      acceptor(std::make_shared<Acceptor>(loop, listenAddr, true)),
+      isStarted(false),
+      connectionCallback(),
+      messageCallback(),
+      writeCompleteCallback() {
+  ioContext->AddLoop(acceptorLoop);
+  acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
+    try {
+      auto asyncConn = std::make_shared<AsyncTcpConnection>(
+          *(this->ioContext->GetNextLoop()), std::move(conn));
+      asyncConn->Initialize();
+
+      if (this->messageCallback) {
+        asyncConn->SetMessageCallback(messageCallback);
+      }
+
+      if (this->writeCompleteCallback) {
+        asyncConn->SetWriteCompleteCallback(writeCompleteCallback);
+      }
+
+      if (connectionCallback) {
+        connectionCallback(asyncConn.get());
+      }
+    } catch (const Exception &e) {
+      // TODO: Handle error
+    }
+  });
+}
+
+eveio::TcpServer::TcpServer(Eventloop &loop,
+                            const InetAddress &listenAddr,
+                            std::shared_ptr<EventloopThreadPool> threadPool)
+    : acceptorLoop(&loop),
+      ioContext(std::move(threadPool)),
+      acceptor(std::make_shared<Acceptor>(loop, listenAddr, true)),
+      isStarted(false),
+      connectionCallback(),
+      messageCallback(),
+      writeCompleteCallback() {
+  acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
+    try {
+      auto asyncConn = std::make_shared<AsyncTcpConnection>(
+          *(this->ioContext->GetNextLoop()), std::move(conn));
+      asyncConn->Initialize();
+
+      if (this->messageCallback) {
+        asyncConn->SetMessageCallback(messageCallback);
+      }
+
+      if (this->writeCompleteCallback) {
+        asyncConn->SetWriteCompleteCallback(writeCompleteCallback);
+      }
+
+      if (connectionCallback) {
+        connectionCallback(asyncConn.get());
+      }
+    } catch (const Exception &e) {
+      // TODO: Handle error
+    }
+  });
+}
+
+eveio::TcpServer::~TcpServer() noexcept {
+  {
+    std::shared_ptr<Acceptor> guard(acceptor);
+    acceptorLoop->RunInLoop([guard]() { guard->Quit(); });
+  }
+}
+
+void eveio::TcpServer::Start() {
+  if (isStarted.exchange(true, std::memory_order_relaxed)) {
+    return;
+  }
+
+  ioContext->Start();
+  acceptorLoop->RunInLoop([this]() { acceptor->Listen(); });
 }

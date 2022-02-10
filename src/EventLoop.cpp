@@ -1,112 +1,133 @@
-#include "eveio/EventLoop.hpp"
-#include "eveio/WakeupHandle.hpp"
+/// Copyright (c) 2021 Li Longhao
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
 
-#include <fmt/ostream.h>
-#include <spdlog/spdlog.h>
+#include "eveio/Eventloop.hpp"
+#include "eveio/Channel.hpp"
+#include "eveio/Exception.hpp"
+#include "eveio/Poller.hpp"
 
+#include <atomic>
 #include <cassert>
-#include <cstdlib>
+#include <chrono>
+#include <exception>
 
 using namespace eveio;
 
-/// Muduo - A reactor-based C++ network library for Linux
-/// Copyright (c) 2010, Shuo Chen.  All rights reserved.
-/// http://code.google.com/p/muduo/
-///
-/// Redistribution and use in source and binary forms, with or without
-/// modification, are permitted provided that the following conditions
-/// are met:
-///
-///   * Redistributions of source code must retain the above copyright
-/// notice, this list of conditions and the following disclaimer.
-///   * Redistributions in binary form must reproduce the above copyright
-/// notice, this list of conditions and the following disclaimer in the
-/// documentation and/or other materials provided with the distribution.
-///   * Neither the name of Shuo Chen nor the names of other contributors
-/// may be used to endorse or promote products derived from this software
-/// without specific prior written permission.
-///
-/// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-/// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-/// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-/// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-/// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-/// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-/// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-/// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-/// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-/// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-/// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+static thread_local eveio::Eventloop *LoopInCurrentThread = nullptr;
 
-static thread_local eveio::EventLoop *LoopInCurrentThread = nullptr;
-
-eveio::EventLoop::EventLoop() noexcept
-    : poller(),
-      is_looping(false),
-      is_quit(false),
-      is_handling_event(false),
-      wakeup_handle(),
-      wakeup_channel(),
-      t_id(std::this_thread::get_id()),
-      active_channels(),
-      pending_func() {
+eveio::Eventloop::Eventloop()
+    : poller(new Poller),
+      isLooping(false),
+      isQuit(false),
+      isHandlingEvent(false),
+      wakeupHandle(),
+      wakeupChannel(),
+      threadID(GetThreadID()),
+      activeChannels(),
+      pendingFunc(),
+      pendingFuncMutex() {
   if (LoopInCurrentThread != nullptr) {
-    SPDLOG_CRITICAL("Another eventloop {} already exists in current thread {}.",
-                    static_cast<void *>(LoopInCurrentThread),
-                    t_id);
-    std::abort();
+    throw RuntimeErrorException(
+        __FILENAME__,
+        __LINE__,
+        __func__,
+        String("Another eventloop ") +
+            std::to_string(reinterpret_cast<uint64_t>(LoopInCurrentThread)) +
+            " already exists in current thread " + std::to_string(threadID) +
+            ".");
   } else {
     LoopInCurrentThread = this;
   }
 
-  wakeup_channel = MakeUnique<Channel>(*this, wakeup_handle.ListenHandle());
-  wakeup_channel->SetReadCallback(
-      [this](Time) { this->wakeup_handle.Respond(); });
-  wakeup_channel->EnableReading();
+  wakeupChannel.reset(new Channel(*this, wakeupHandle.GetListenHandle()));
+  wakeupChannel->SetReadCallback([this](std::chrono::system_clock::time_point) {
+    this->wakeupHandle.Respond();
+  });
+  wakeupChannel->EnableReading();
 }
 
-eveio::EventLoop::~EventLoop() noexcept {
-  wakeup_channel->DisableAll();
-  wakeup_channel->Unregist();
-  WakeupHandle::Close(wakeup_handle);
+eveio::Eventloop::~Eventloop() noexcept {
+  wakeupChannel->DisableAll();
+  wakeupChannel->Unregist();
+  assert(LoopInCurrentThread == this);
   LoopInCurrentThread = nullptr;
 }
 
-void eveio::EventLoop::Loop() noexcept {
-  assert(!is_looping.load(std::memory_order_relaxed));
-  is_looping.store(true, std::memory_order_relaxed);
-  is_quit.store(false, std::memory_order_relaxed);
+void eveio::Eventloop::Loop() noexcept {
+  assert(!isLooping.load(std::memory_order_relaxed));
+  if (isLooping.exchange(true, std::memory_order_relaxed)) {
+    return;
+  }
 
-  while (!is_quit.load(std::memory_order_relaxed)) {
-    active_channels.clear();
-    Time poll_return_time =
-        poller.Poll(Time::Milliseconds(10000), active_channels);
+  while (!isQuit.load(std::memory_order_relaxed)) {
+    activeChannels.clear();
 
-    { // handle events
-      is_handling_event = true;
-      for (Channel *const chan : active_channels)
-        chan->HandleEvent(poll_return_time);
-      is_handling_event = false;
+    try {
+      auto pollReturnTime =
+          poller->Poll(std::chrono::milliseconds(10000), activeChannels);
+      {
+        isHandlingEvent.store(true, std::memory_order_relaxed);
+        for (const auto &channel : activeChannels) {
+          channel->HandleEvent(pollReturnTime);
+        }
+        isHandlingEvent.store(false, std::memory_order_relaxed);
+      }
+    } catch (const SystemErrorException &e) {
+      // TODO: Handle error
     }
 
     DoPendingFunc();
   }
 
-  is_looping.store(false, std::memory_order_relaxed);
+  isLooping.store(false, std::memory_order_relaxed);
 }
 
-void eveio::EventLoop::Quit() noexcept {
-  is_quit.store(true, std::memory_order_relaxed);
-  if (!IsInLoopThread())
+void eveio::Eventloop::Quit() noexcept {
+  isQuit.store(true, std::memory_order_relaxed);
+  if (!IsInLoopThread()) {
     WakeUp();
+  }
 }
 
-void eveio::EventLoop::DoPendingFunc() noexcept {
-  std::function<void()> fn;
-  while (pending_func.try_dequeue(fn))
-    fn();
+void eveio::Eventloop::DoPendingFunc() noexcept {
+  std::vector<std::function<void()>> pendingFuncCopy;
+  {
+    std::lock_guard<std::mutex> lock(pendingFuncMutex);
+    pendingFuncCopy.swap(pendingFunc);
+  }
+
+  for (const auto &func : pendingFuncCopy) {
+    func();
+  }
 }
 
-EventLoop *eveio::EventLoop::CurrentThreadLoop() noexcept {
+Eventloop *eveio::Eventloop::GetCurrentThreadLoop() noexcept {
   return LoopInCurrentThread;
+}
+
+void eveio::Eventloop::UpdateChannel(Channel *channel) const {
+  assert(channel->GetOwnerLoop() == this);
+  poller->UpdateChannel(channel);
+}
+
+void eveio::Eventloop::UnregistChannel(Channel *channel) const {
+  assert(channel->GetOwnerLoop() == this);
+  poller->UnregistChannel(channel);
 }

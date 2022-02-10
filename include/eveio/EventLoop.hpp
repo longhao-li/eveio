@@ -1,129 +1,123 @@
+/// Copyright (c) 2021 Li Longhao
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
+
 #ifndef EVEIO_EVENTLOOP_HPP
 #define EVEIO_EVENTLOOP_HPP
 
-#include "eveio/Channel.hpp"
-#include "eveio/Poller.hpp"
-#include "eveio/SmartPtr.hpp"
-#include "eveio/Vector.hpp"
+#include "eveio/Config.hpp"
 #include "eveio/WakeupHandle.hpp"
-
-#include "eveio/concurrentqueue.h"
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <mutex>
-#include <thread>
-
-/// Muduo - A reactor-based C++ network library for Linux
-/// Copyright (c) 2010, Shuo Chen.  All rights reserved.
-/// http://code.google.com/p/muduo/
-///
-/// Redistribution and use in source and binary forms, with or without
-/// modification, are permitted provided that the following conditions
-/// are met:
-///
-///   * Redistributions of source code must retain the above copyright
-/// notice, this list of conditions and the following disclaimer.
-///   * Redistributions in binary form must reproduce the above copyright
-/// notice, this list of conditions and the following disclaimer in the
-/// documentation and/or other materials provided with the distribution.
-///   * Neither the name of Shuo Chen nor the names of other contributors
-/// may be used to endorse or promote products derived from this software
-/// without specific prior written permission.
-///
-/// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-/// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-/// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-/// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-/// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-/// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-/// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-/// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-/// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-/// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-/// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#include <vector>
 
 namespace eveio {
-namespace detail {
 
-struct EveioConcurrentQueueTrait
-    : public moodycamel::ConcurrentQueueDefaultTraits {
-  static inline void *malloc(size_t size) noexcept { return mi_malloc(size); }
-  static inline void free(void *ptr) noexcept { return mi_free(ptr); }
-};
+class Channel;
+class Poller;
 
-} // namespace detail
+class Eventloop {
+  using ChannelList = std::vector<Channel *>;
 
-class EventLoop {
-  typedef Vector<Channel *> ChannelList;
+  std::unique_ptr<Poller> poller;
+  std::atomic_bool isLooping;
+  std::atomic_bool isQuit;
+  std::atomic_bool isHandlingEvent;
 
-  Poller poller;
+  WakeupHandle wakeupHandle;
+  std::unique_ptr<Channel> wakeupChannel;
 
-  std::atomic_bool is_looping;
-  std::atomic_bool is_quit;
+  threadid_t threadID;
+  ChannelList activeChannels;
 
-  volatile bool is_handling_event;
-
-  WakeupHandle wakeup_handle;
-  UniquePtr<Channel> wakeup_channel;
-
-  std::thread::id t_id;
-  ChannelList active_channels;
-
-  moodycamel::ConcurrentQueue<std::function<void()>,
-                              detail::EveioConcurrentQueueTrait>
-      pending_func;
+  std::vector<std::function<void()>> pendingFunc;
+  std::mutex pendingFuncMutex;
 
 public:
-  EventLoop() noexcept;
+  /// Poller may throw SystemErrorException.
+  /// Throw RuntimeErrorException if current thread already has one loop.
+  Eventloop();
+  ~Eventloop() noexcept;
 
-  EventLoop(const EventLoop &) = delete;
-  EventLoop &operator=(const EventLoop &) = delete;
+  Eventloop(const Eventloop &) = delete;
+  Eventloop &operator=(const Eventloop &) = delete;
 
-  EventLoop(EventLoop &&) = delete;
-  EventLoop &operator=(EventLoop &&) = delete;
+  Eventloop(Eventloop &&) = delete;
+  Eventloop &operator=(Eventloop &&) = delete;
 
-  ~EventLoop() noexcept;
-
+  /// Thread safe method.
+  /// Safe to call for multi-times.
   void Loop() noexcept;
+
+  /// Thread safe method.
+  /// Safe to call for multi-times.
   void Quit() noexcept;
 
-  void WakeUp() const noexcept { wakeup_handle.Trigger(); }
+  /// Let poller return immediately.
+  void WakeUp() const noexcept { wakeupHandle.Trigger(); }
 
-  bool IsRunning() const noexcept {
-    return is_looping.load(std::memory_order_relaxed);
+  /// Thread safe method.
+  bool IsLooping() const noexcept {
+    return isLooping.load(std::memory_order_relaxed);
   }
 
-  bool IsHandlingEvent() const noexcept { return is_handling_event; }
-
-  bool IsInLoopThread() const noexcept {
-    return t_id == std::this_thread::get_id();
+  /// Thread safe method.
+  bool IsHandlingEvent() const noexcept {
+    return isHandlingEvent.load(std::memory_order_relaxed);
   }
 
-  template <class Fn, class... Args>
-  void RunInLoop(Fn &&fn, Args &&...args) {
+  /// Thread safe method.
+  bool IsInLoopThread() const noexcept { return threadID == GetThreadID(); }
+
+  /// Thread safe method.
+  template <class Fn>
+  void QueueInLoop(Fn &&fn) {
+    std::lock_guard<std::mutex> lock(pendingFuncMutex);
+    pendingFunc.emplace_back(std::forward<Fn>(fn));
+  }
+
+  /// Thread safe method.
+  template <class Fn>
+  void RunInLoop(Fn &&fn) {
     if (IsInLoopThread()) {
-      std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...)();
+      fn();
     } else {
-      QueueInLoop(std::forward<Fn>(fn), std::forward<Args>(args)...);
+      QueueInLoop(std::forward<Fn>(fn));
       WakeUp();
     }
   }
 
-  template <class Fn, class... Args>
-  void QueueInLoop(Fn &&fn, Args &&...args) {
-    pending_func.enqueue(
-        std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...));
-  }
+  /// For Internal Usage
+  /// Called by channel.
+  void UpdateChannel(Channel *channel) const;
 
-  static EventLoop *CurrentThreadLoop() noexcept;
+  /// For Internal Usage
+  /// Called by channel.
+  void UnregistChannel(Channel *channel) const;
+
+  static Eventloop *GetCurrentThreadLoop() noexcept;
 
 private:
   void DoPendingFunc() noexcept;
-
-  friend void Channel::Update() noexcept;
-  friend void Channel::Unregist() noexcept;
-  friend bool Channel::IsRegisted() const noexcept;
 };
 
 } // namespace eveio

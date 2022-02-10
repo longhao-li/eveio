@@ -10,14 +10,11 @@ target_include_directories(
 target_link_libraries(
   eveio
   PUBLIC
-  spdlog::spdlog
-  fmt::fmt
-  mimalloc
-  ${CMAKE_THREAD_LIBS_INIT}
+  Threads::Threads
 )
 
 set_target_properties(
-  eveio 
+  eveio
   PROPERTIES 
   VERSION ${eveio_VERSION}
   SOVERSION ${eveio_VERSION_MAJOR}
@@ -34,10 +31,7 @@ target_include_directories(
 target_link_libraries(
   eveio_static
   PUBLIC
-  spdlog::spdlog
-  fmt::fmt
-  mimalloc
-  ${CMAKE_THREAD_LIBS_INIT}
+  Threads::Threads
 )
 
 set_target_properties(

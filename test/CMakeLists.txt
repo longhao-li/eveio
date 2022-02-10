@@ -1,22 +1,61 @@
 enable_testing()
 
-aux_source_directory(unittest EVEIO_UNITTEST_SRC)
-add_executable(eveio_unittest ${EVEIO_UNITTEST_SRC})
-target_link_libraries(
-  eveio_unittest
-  eveio
-  ${GTEST_BOTH_LIBRARIES}
+find_package(GTest)
+if(NOT GTest_FOUND)
+  message(STATUS "GTest not found, downloading from GitHub...")
+  # Download from GitHub
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY "https://github.com/google/googletest.git"
+    GIT_TAG "main"
+  )
+  FetchContent_MakeAvailable(googletest)
+endif()
+
+# Unit test
+aux_source_directory(UnitTest EVEIO_UNIT_TEST_SRC)
+add_executable(eveioUnitTest ${EVEIO_UNIT_TEST_SRC})
+
+target_include_directories(
+  eveioUnitTest
+  PRIVATE
+  ${GTEST_INCLUDE_DIRS}
 )
-add_test(NAME eveio_unittest COMMAND eveio_unittest)
 
-add_executable(eveio_TcpEchoServer TcpEchoServer.cpp)
-target_link_libraries(eveio_TcpEchoServer eveio)
+target_link_libraries(
+  eveioUnitTest
+  eveio
+  GTest::gtest
+  GTest::gtest_main
+  Threads::Threads
+)
 
-add_executable(eveio_UdpEchoServer UdpEchoServer.cpp)
-target_link_libraries(eveio_UdpEchoServer eveio)
+add_test(
+  NAME eveioUnitTest
+  COMMAND eveioUnitTest
+)
 
-add_executable(eveio_UdpClient UdpClient.cpp)
-target_link_libraries(eveio_UdpClient eveio)
+# TcpEchoServer
+add_executable(
+  eveioTcpEchoServer
+  TcpEchoServer.cpp
+)
 
-add_executable(eveio_echo PingPong.cpp)
-target_link_libraries(eveio_echo eveio)
+target_link_libraries(
+  eveioTcpEchoServer
+  eveio
+  Threads::Threads
+)
+
+# PingPong
+add_executable(
+  eveioPingPong
+  PingPong.cpp
+)
+
+target_link_libraries(
+  eveioPingPong
+  eveio
+  Threads::Threads
+)

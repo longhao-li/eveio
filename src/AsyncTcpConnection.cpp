@@ -1,199 +1,203 @@
-#include "eveio/net/AsyncTcpConnection.hpp"
-#include "eveio/Channel.hpp"
-#include "eveio/EventLoop.hpp"
-#include "eveio/net/TcpConnection.hpp"
+/// Copyright (c) 2021 Li Longhao
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
 
-#include <spdlog/spdlog.h>
+#include "eveio/AsyncTcpConnection.hpp"
+#include "eveio/Eventloop.hpp"
+#include "eveio/Exception.hpp"
 
-#include <atomic>
 #include <cassert>
 #include <cerrno>
-#include <cstdlib>
-#include <utility>
+#include <chrono>
+#include <cstring>
+#include <memory>
 
 using namespace eveio;
-using namespace eveio::net;
 
-/// Muduo - A reactor-based C++ network library for Linux
-/// Copyright (c) 2010, Shuo Chen.  All rights reserved.
-/// http://code.google.com/p/muduo/
-///
-/// Redistribution and use in source and binary forms, with or without
-/// modification, are permitted provided that the following conditions
-/// are met:
-///
-///   * Redistributions of source code must retain the above copyright
-/// notice, this list of conditions and the following disclaimer.
-///   * Redistributions in binary form must reproduce the above copyright
-/// notice, this list of conditions and the following disclaimer in the
-/// documentation and/or other materials provided with the distribution.
-///   * Neither the name of Shuo Chen nor the names of other contributors
-/// may be used to endorse or promote products derived from this software
-/// without specific prior written permission.
-///
-/// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-/// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-/// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-/// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-/// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-/// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-/// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-/// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-/// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-/// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-/// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+void eveio::AsyncTcpConnectionBuffer::Append(const void *ptr,
+                                             size_t size) noexcept {
+  storage.reserve(tail + size);
+  memcpy(storage.data() + tail, ptr, size);
+  tail += size;
+}
 
-eveio::net::AsyncTcpConnection::AsyncTcpConnection(
-    EventLoop &event_loop, TcpConnection &&connect) noexcept
+eveio::AsyncTcpConnection::AsyncTcpConnection(Eventloop &ownerLoop,
+                                              TcpConnection &&conn)
     : std::enable_shared_from_this<AsyncTcpConnection>(),
-      guard_self(),
-      loop(&event_loop),
-      conn(std::move(connect)),
-      channel(event_loop, conn.native_socket()),
-      read_buffer(),
-      write_buffer(),
-      message_callback(),
-      write_complete_callback(),
-      close_callback(),
-      is_exiting(false) {}
+      guardThis(),
+      loop(&ownerLoop),
+      connection(std::move(conn)),
+      channel(ownerLoop, reinterpret_cast<handle_t>(connection.GetSocket())),
+      readBuffer(),
+      writeBuffer(),
+      messageCallback(),
+      writeCompleteCallback(),
+      isQuit(false) {}
 
-eveio::net::AsyncTcpConnection::~AsyncTcpConnection() noexcept {
-  // assert(loop->IsInLoopThread());
+void eveio::AsyncTcpConnection::Initialize() {
+  guardThis = shared_from_this();
+
+  if (!connection.SetNonblock(true)) {
+    throw SystemErrorException(__FILENAME__,
+                               __LINE__,
+                               __func__,
+                               "Failed to set connection " +
+                                   std::to_string(connection.GetSocket()) +
+                                   " nonblock: " + std::strerror(errno));
+  }
+
+  if (!connection.SetKeepAlive(true)) {
+    throw SystemErrorException(__FILENAME__,
+                               __LINE__,
+                               __func__,
+                               "Failed to set connection " +
+                                   std::to_string(connection.GetSocket()) +
+                                   " keepalive: " + std::strerror(errno));
+  }
+
+  channel.Tie(shared_from_this());
+  channel.SetReadCallback([this](std::chrono::system_clock::time_point time) {
+    this->HandleRead(time);
+  });
+  channel.SetWriteCallback([this]() { this->SendInLoop(); });
+  channel.SetCloseCallback([this]() { this->WouldDestroy(); });
+  loop->RunInLoop([this]() { this->channel.EnableReading(); });
+}
+
+eveio::AsyncTcpConnection::~AsyncTcpConnection() noexcept {
+  assert(loop->IsInLoopThread());
   assert(channel.IsNoneEvent());
 }
 
-void eveio::net::AsyncTcpConnection::Initialize() noexcept {
-  if (!conn.SetNonblock(true)) {
-    SPDLOG_CRITICAL(
-        "failed to set connection {} nonblock with peer address: {}. Abort.",
-        conn.native_socket(),
-        PeerAddr().GetIpWithPort());
-    std::abort();
-  }
-
-  if (!conn.SetKeepAlive(true)) {
-    SPDLOG_CRITICAL(
-        "failed to set connection {} keepalive with peer address: {}. Abort.",
-        conn.native_socket(),
-        PeerAddr().GetIpWithPort());
-    std::abort();
-  }
-
-  guard_self = shared_from_this();
-  channel.Tie(guard_self);
-  channel.SetReadCallback(&AsyncTcpConnection::HandleRead, this);
-  channel.SetWriteCallback(&AsyncTcpConnection::SendInLoop, this);
-  channel.SetCloseCallback([this]() { this->WouldDestroy(); });
-  loop->RunInLoop(&Channel::EnableReading, &channel);
-}
-
-void eveio::net::AsyncTcpConnection::AsyncSend(StringRef data) noexcept {
-  AsyncSend(data.data(), data.size());
-}
-
-void eveio::net::AsyncTcpConnection::AsyncSend(const void *buf,
-                                               size_t byte) noexcept {
-  if (is_exiting.load(std::memory_order_relaxed))
+void eveio::AsyncTcpConnection::AsyncSend(const void *data,
+                                          size_t size) noexcept {
+  if (isQuit.load(std::memory_order_relaxed)) {
     return;
+  }
 
   if (loop->IsInLoopThread()) {
-    write_buffer.Append(buf, byte);
+    writeBuffer.Append(data, size);
     SendInLoop();
   } else {
-    String data(static_cast<const char *>(buf), byte);
-    loop->RunInLoop([this, data]() {
-      this->write_buffer.Append(data.data(), data.size());
+    String buf(static_cast<const char *>(data), size);
+    loop->RunInLoop([this, buf]() {
+      this->writeBuffer.Append(buf.data(), buf.size());
       this->channel.EnableWriting();
     });
   }
 }
 
-void eveio::net::AsyncTcpConnection::WouldDestroy() noexcept {
-  if (is_exiting.exchange(true, std::memory_order_relaxed) == false) {
-    loop->QueueInLoop(&AsyncTcpConnection::Destroy, shared_from_this());
+void eveio::AsyncTcpConnection::AsyncSend(StringRef data) noexcept {
+  AsyncSend(data.data(), data.size());
+}
+
+void eveio::AsyncTcpConnection::AsyncSend(const String &data) noexcept {
+  AsyncSend(data.data(), data.size());
+}
+
+void eveio::AsyncTcpConnection::AsyncSend(const char *str) noexcept {
+  AsyncSend(StringRef(str));
+}
+
+void eveio::AsyncTcpConnection::WouldDestroy() noexcept {
+  if (isQuit.exchange(true, std::memory_order_relaxed) == false) {
+    auto guard = shared_from_this();
+    loop->QueueInLoop([guard]() { guard->Destroy(); });
   }
 }
 
-void eveio::net::AsyncTcpConnection::Destroy() noexcept {
-  assert(loop->IsRunning());
+void eveio::AsyncTcpConnection::Destroy() noexcept {
+  assert(loop->IsLooping());
   assert(loop->IsInLoopThread());
-
-  auto guard = shared_from_this();
-
-  if (close_callback)
-    close_callback(this);
 
   channel.DisableAll();
   channel.Unregist();
-  this->guard_self.reset();
+
+  guardThis = nullptr;
 }
 
-void eveio::net::AsyncTcpConnection::HandleRead(Time time) noexcept {
+void eveio::AsyncTcpConnection::HandleRead(
+    std::chrono::system_clock::time_point time) noexcept {
+  assert(loop->IsLooping());
   assert(loop->IsInLoopThread());
-  int64_t byte_read = 0;
 
-  auto try_read = [this, time]() {
-    if (read_buffer.Size() > 0) {
-      if (message_callback)
-        message_callback(this, read_buffer, time);
-      else
-        read_buffer.Clear();
+  auto tryRead = [this, time]() {
+    if (this->readBuffer.size() > 0) {
+      if (this->messageCallback) {
+        messageCallback(this, readBuffer, time);
+      } else {
+        readBuffer.clear();
+      }
     }
   };
 
-  if (read_buffer.ReadFromSocket(conn.native_socket(), byte_read)) {
-    assert(byte_read >= 0);
-    assert(guard_self != nullptr);
+  char buffer[4096]{};
+  int64_t byteRead = 0;
+  while ((byteRead = connection.Receive(buffer, sizeof(buffer))) > 0) {
+    readBuffer.Append(buffer, byteRead);
+  }
 
-    try_read();
+  int savedErrno = errno;
+  if (byteRead >= 0 || (byteRead < 0 && savedErrno == EWOULDBLOCK)) {
+    tryRead();
   } else {
-    int saved_errno = errno;
-    if (saved_errno == ECONNRESET || saved_errno == EPIPE) {
-      try_read();
-      SPDLOG_TRACE("Connection with {} closed.", PeerAddr().GetIpWithPort());
+    if (savedErrno == ECONNRESET || savedErrno == EPIPE) {
+      tryRead();
       WouldDestroy();
-    } else if (saved_errno != EWOULDBLOCK) {
-      SPDLOG_ERROR("connection {} failed to receive data from {}: {}.",
-                   conn.native_socket(),
-                   PeerAddr().GetIpWithPort(),
-                   std::strerror(saved_errno));
+    } else {
+      // TODO: Handle error
     }
   }
 }
 
-void eveio::net::AsyncTcpConnection::SendInLoop() noexcept {
+void eveio::AsyncTcpConnection::SendInLoop() noexcept {
+  assert(loop->IsLooping());
   assert(loop->IsInLoopThread());
 
-  int64_t byte_write =
-      conn.Send(write_buffer.Data<char>(), write_buffer.Size());
-  if (byte_write >= 0) {
-    write_buffer.Readout(static_cast<size_t>(byte_write));
-    if (write_buffer.IsEmpty()) {
+  if (writeBuffer.empty()) {
+    return;
+  }
+
+  int64_t byteWritten =
+      connection.Send(writeBuffer.data<char>(), writeBuffer.size());
+  if (byteWritten >= 0) {
+    writeBuffer.ReadOut(byteWritten);
+    if (writeBuffer.empty()) {
       channel.DisableWriting();
-      if (write_complete_callback) {
-        // get shared_ptr to avoid this from being released
-        auto p = shared_from_this();
-        loop->QueueInLoop(
-            [this, p]() { this->write_complete_callback(p.get()); });
+      if (writeCompleteCallback) {
+        writeCompleteCallback(this);
       }
     }
   } else {
-    int saved_errno = errno;
-    if (saved_errno != EWOULDBLOCK) {
-      if (saved_errno == ECONNRESET || saved_errno == EPIPE) {
-        SPDLOG_TRACE("Connection with {} closed.", PeerAddr().GetIpWithPort());
-        WouldDestroy();
-        return;
-      } else {
-        SPDLOG_ERROR("Connection {} failed to transfer data to peer {}. error "
-                     "message: {}.",
-                     conn.native_socket(),
-                     PeerAddr().GetIpWithPort(),
-                     std::strerror(errno));
-      }
+    int savedErrno = errno;
+    if (savedErrno == ECONNRESET || savedErrno == EPIPE) {
+      // Connection closed
+      WouldDestroy();
+      return;
+    } else if (savedErrno != EWOULDBLOCK) {
+      // TODO: Handle error
+      WouldDestroy();
+      return;
     }
   }
 
-  if (!write_buffer.IsEmpty())
+  if (!writeBuffer.empty()) {
     channel.EnableWriting();
+  }
 }
