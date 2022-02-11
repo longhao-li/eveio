@@ -141,8 +141,6 @@ inline bool operator>=(StringRef lhs, StringRef rhs) noexcept {
   return lhs.compare(rhs) >= 0;
 }
 
-using StringMatch = std::smatch;
-
 } // namespace eveio
 
 #endif // EVEIO_STRING_HPP

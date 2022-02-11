@@ -62,6 +62,7 @@ using handle_t = void *;
 #  include <netinet/in.h>
 #  include <netinet/tcp.h>
 #  include <sys/socket.h>
+#  include <sys/stat.h>
 #  include <sys/types.h>
 #  include <unistd.h>
 

@@ -1,3 +1,13 @@
+# Rely on llhttp to parse http
+message("Fetching llhttp from GitHub...")
+include(FetchContent)
+FetchContent_Declare(
+  llhttp
+  GIT_REPOSITORY "https://github.com/nodejs/llhttp.git"
+  GIT_TAG "release"
+)
+FetchContent_MakeAvailable(llhttp)
+
 aux_source_directory(. EVEIO_SRC)
 
 # shared library configuration
