@@ -42,9 +42,7 @@ struct StringCaseInsensitiveLess {
 
 }; // namespace detail
 
-using HttpHeaders =
-    std::multimap<String, String, detail::StringCaseInsensitiveLess>;
-using HttpParams = std::multimap<String, String>;
+using HttpHeaders = std::map<String, String, detail::StringCaseInsensitiveLess>;
 
 enum class HttpMethod {
   Undefined,
@@ -59,22 +57,31 @@ enum class HttpMethod {
   Patch,
 };
 
+struct HttpVersion {
+  uint8_t major;
+  uint8_t minor;
+};
+
+class AsyncTcpConnectionBuffer;
+
 class HttpRequest {
   HttpMethod method;
   String path;
   HttpHeaders headers;
   String body;
+  HttpVersion version;
 
-  uint8_t httpVersionMajor;
-  uint8_t httpVersionMinor;
-
-  String target;
-  HttpParams params;
+private:
+  // Used by llhttp
+  static int OnURL(void *, const char *, size_t) noexcept;
+  static int OnHeaderField(void *, const char *, size_t) noexcept;
+  static int OnHeaderValue(void *, const char *, size_t) noexcept;
+  static int OnBody(void *, const char *, size_t) noexcept;
 
 public:
   /// Parse HttpRequest from data.
   /// Throw InvalidParameterException if data is not valid HttpRequest.
-  HttpRequest(const void *data, size_t len);
+  HttpRequest(AsyncTcpConnectionBuffer *data);
   ~HttpRequest() noexcept;
 
   HttpRequest(const HttpRequest &) noexcept;
@@ -83,12 +90,15 @@ public:
   HttpRequest(HttpRequest &&) noexcept;
   HttpRequest &operator=(HttpRequest &&) noexcept;
 
-  bool HasHeader(const String &key) const noexcept;
+  HttpMethod GetHttpMethod() const noexcept { return method; }
+  const String &GetURL() const noexcept { return path; }
+  const String &GetBody() const noexcept { return body; }
+  HttpVersion GetVersion() const noexcept { return version; }
+
+  bool ContainsHeader(const String &key) const noexcept;
 
   // Return nullptr if doesn't exists.
-  const String *GetHeaderValue(const String &key, size_t id = 0) const noexcept;
-
-  size_t GetHeaderValueCount(const String &key) const noexcept;
+  const String *GetHeaderValue(const String &key) const noexcept;
 
   /// A new header item will be created if key doesn't exist.
   void SetHeader(const String &key, const String &value) noexcept;
@@ -98,13 +108,6 @@ public:
   void SetHeader(const String &key, StringRef value) noexcept;
   /// A new header item will be created if key doesn't exist.
   void SetHeader(const String &key, const char *value) noexcept;
-
-  bool HasParam(const String &key) const noexcept;
-
-  // Return nullptr if doesn't exists.
-  const String *GetParamValue(const String &key, size_t id = 0) const noexcept;
-
-  size_t GetParamValueCount(const String &key) const noexcept;
 };
 
 using HttpStatus = int;
@@ -112,9 +115,7 @@ using HttpStatus = int;
 const char *GetHttpStatusName(HttpStatus status) noexcept;
 
 class HttpResponse {
-  uint8_t httpVersionMajor;
-  uint8_t httpVersionMinor;
-
+  HttpVersion version;
   HttpStatus status;
 
   String resion;
@@ -132,12 +133,10 @@ public:
   HttpResponse(HttpResponse &&) noexcept;
   HttpResponse &operator=(HttpResponse &&) noexcept;
 
-  bool HasHeader(const String &key) const noexcept;
+  bool ContainsHeader(const String &key) const noexcept;
 
   /// Return nullptr if doesn't exists.
   const String *GetHeaderValue(const String &key, size_t id = 0) const noexcept;
-
-  size_t GetHeaderValueCount(const String &key) const noexcept;
 
   /// A new header item will be created if key doesn't exist.
   void SetHeader(const String &key, const String &value) noexcept;
@@ -154,9 +153,12 @@ public:
   void SetRedirect(const char *url, HttpStatus status = 302) noexcept;
 };
 
+class AsyncTcpConnection;
+
 class HttpServer {
 public:
-  using Handler = std::function<void(const HttpRequest &, HttpResponse &)>;
+  using Handler = std::function<void(
+      AsyncTcpConnection *, const HttpRequest &, HttpResponse &)>;
 
   HttpServer();
   ~HttpServer() noexcept;
@@ -181,8 +183,6 @@ public:
   HttpServer &Options(String &&pattern, Handler handler);
   HttpServer &Options(StringRef pattern, Handler handler);
   HttpServer &Options(const char *pattern, Handler handler);
-
-private:
 };
 
 } // namespace eveio

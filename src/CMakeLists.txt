@@ -23,6 +23,12 @@ target_link_libraries(
   Threads::Threads
 )
 
+target_link_libraries(
+  eveio
+  PRIVATE
+  llhttp::llhttp
+)
+
 set_target_properties(
   eveio
   PROPERTIES 
@@ -42,6 +48,12 @@ target_link_libraries(
   eveio_static
   PUBLIC
   Threads::Threads
+)
+
+target_link_libraries(
+  eveio_static
+  PRIVATE
+  llhttp::llhttp
 )
 
 set_target_properties(
