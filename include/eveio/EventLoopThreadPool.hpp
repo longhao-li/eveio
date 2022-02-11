@@ -21,7 +21,7 @@
 #ifndef EVEIO_EVENTLOOP_THREAD_POOL_HPP
 #define EVEIO_EVENTLOOP_THREAD_POOL_HPP
 
-#include "eveio/EventloopThread.hpp"
+#include "eveio/EventLoopThread.hpp"
 
 #include <atomic>
 #include <cassert>
@@ -32,36 +32,36 @@
 
 namespace eveio {
 
-class Eventloop;
-class EventloopThread;
+class EventLoop;
+class EventLoopThread;
 
-class EventloopThreadPool {
+class EventLoopThreadPool {
   std::atomic_bool isStarted;
   std::atomic_size_t numThread;
   std::atomic_size_t nextLoop;
-  std::vector<std::unique_ptr<EventloopThread>> workers;
-  std::vector<Eventloop *> loops;
+  std::vector<std::unique_ptr<EventLoopThread>> workers;
+  std::vector<EventLoop *> loops;
 
 public:
-  EventloopThreadPool(
+  EventLoopThreadPool(
       size_t threadNum = std::thread::hardware_concurrency()) noexcept;
-  ~EventloopThreadPool() noexcept = default;
+  ~EventLoopThreadPool() noexcept = default;
 
-  EventloopThreadPool(const EventloopThreadPool &) = delete;
-  EventloopThreadPool &operator=(const EventloopThreadPool &) = delete;
+  EventLoopThreadPool(const EventLoopThreadPool &) = delete;
+  EventLoopThreadPool &operator=(const EventLoopThreadPool &) = delete;
 
-  EventloopThreadPool(EventloopThreadPool &&) = delete;
-  EventloopThreadPool &operator=(EventloopThreadPool &&) = delete;
+  EventLoopThreadPool(EventLoopThreadPool &&) = delete;
+  EventLoopThreadPool &operator=(EventLoopThreadPool &&) = delete;
 
-  Eventloop *GetNextLoop() noexcept;
+  EventLoop *GetNextLoop() noexcept;
 
-  const std::vector<Eventloop *> &GetAllLoops() const noexcept { return loops; }
+  const std::vector<EventLoop *> &GetAllLoops() const noexcept { return loops; }
 
   void SetThreadNum(size_t num) noexcept {
     numThread.store(num, std::memory_order_relaxed);
   }
 
-  void AddLoop(Eventloop *loop) noexcept { loops.push_back(loop); }
+  void AddLoop(EventLoop *loop) noexcept { loops.push_back(loop); }
 
   void Start() noexcept;
 
@@ -74,7 +74,7 @@ public:
     assert(numThread > 0);
     for (size_t i = 0; i < numThread; ++i) {
       workers.emplace_back(
-          new EventloopThread(std::forward<InitFn>(loopInitFunc)));
+          new EventLoopThread(std::forward<InitFn>(loopInitFunc)));
       loops.emplace_back(workers.back()->StartLoop());
     }
   }

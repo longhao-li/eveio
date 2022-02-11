@@ -33,7 +33,7 @@ class EchoServer {
   TcpServer server;
 
 public:
-  EchoServer(Eventloop &loop, const InetAddress &addr) : server(loop, addr) {
+  EchoServer(EventLoop &loop, const InetAddress &addr) : server(loop, addr) {
     server.SetConnectionCallback([this](AsyncTcpConnection *conn) {
       try {
         auto peerAddr = conn->GetPeerAddress();
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
   }
 
   try {
-    Eventloop loop;
+    EventLoop loop;
     InetAddress addr = InetAddress::Ipv4Any(2000);
     EchoServer server(loop, addr);
     fprintf(stdout, "Listening %s\n", addr.GetIPWithPort().c_str());

@@ -19,7 +19,7 @@
 /// IN THE SOFTWARE.
 
 #include "eveio/AsyncTcpConnection.hpp"
-#include "eveio/Eventloop.hpp"
+#include "eveio/EventLoop.hpp"
 #include "eveio/Exception.hpp"
 
 #include <cassert>
@@ -37,7 +37,7 @@ void eveio::AsyncTcpConnectionBuffer::Append(const void *ptr,
   tail += size;
 }
 
-eveio::AsyncTcpConnection::AsyncTcpConnection(Eventloop &ownerLoop,
+eveio::AsyncTcpConnection::AsyncTcpConnection(EventLoop &ownerLoop,
                                               TcpConnection &&conn)
     : std::enable_shared_from_this<AsyncTcpConnection>(),
       guardThis(),

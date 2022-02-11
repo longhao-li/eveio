@@ -29,34 +29,34 @@
 
 namespace eveio {
 
-class Eventloop;
+class EventLoop;
 
-class EventloopThread {
-  Eventloop *loop;
+class EventLoopThread {
+  EventLoop *loop;
   std::thread loopThread;
   std::mutex loopMutex;
   std::condition_variable loopCond;
-  std::function<void(Eventloop *)> initCallback;
+  std::function<void(EventLoop *)> initCallback;
 
 public:
-  EventloopThread() noexcept;
-  ~EventloopThread() noexcept;
+  EventLoopThread() noexcept;
+  ~EventLoopThread() noexcept;
 
-  EventloopThread(const EventloopThread &) = delete;
-  EventloopThread &operator=(const EventloopThread &) = delete;
+  EventLoopThread(const EventLoopThread &) = delete;
+  EventLoopThread &operator=(const EventLoopThread &) = delete;
 
-  EventloopThread(EventloopThread &&) = delete;
-  EventloopThread &operator=(EventloopThread &&) = delete;
+  EventLoopThread(EventLoopThread &&) = delete;
+  EventLoopThread &operator=(EventLoopThread &&) = delete;
 
   template <class Fn>
-  EventloopThread(Fn &&fn)
+  EventLoopThread(Fn &&fn)
       : loop(nullptr),
         loopThread(),
         loopMutex(),
         loopCond(),
         initCallback(std::forward<Fn>(fn)) {}
 
-  Eventloop *StartLoop() noexcept;
+  EventLoop *StartLoop() noexcept;
 
 private:
   void Task() noexcept;

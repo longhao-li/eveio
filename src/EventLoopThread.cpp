@@ -18,33 +18,33 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#include "eveio/EventloopThread.hpp"
-#include "eveio/Eventloop.hpp"
+#include "eveio/EventLoopThread.hpp"
+#include "eveio/EventLoop.hpp"
 
 #include <cassert>
 #include <mutex>
 
 using namespace eveio;
 
-eveio::EventloopThread::EventloopThread() noexcept
+eveio::EventLoopThread::EventLoopThread() noexcept
     : loop(nullptr), loopThread(), loopMutex(), loopCond(), initCallback() {}
 
-eveio::EventloopThread::~EventloopThread() noexcept {
+eveio::EventLoopThread::~EventLoopThread() noexcept {
   if (loop != nullptr) {
     loop->Quit();
     loopThread.join();
   }
 }
 
-Eventloop *eveio::EventloopThread::StartLoop() noexcept {
+EventLoop *eveio::EventLoopThread::StartLoop() noexcept {
   loopThread = std::thread([this]() { this->Task(); });
   std::unique_lock<std::mutex> guard(loopMutex);
   loopCond.wait(guard, [this]() -> bool { return this->loop != nullptr; });
   return loop;
 }
 
-void eveio::EventloopThread::Task() noexcept {
-  Eventloop taskLoop;
+void eveio::EventLoopThread::Task() noexcept {
+  EventLoop taskLoop;
   if (initCallback) {
     initCallback(&taskLoop);
   }

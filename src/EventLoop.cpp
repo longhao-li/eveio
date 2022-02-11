@@ -18,7 +18,7 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#include "eveio/Eventloop.hpp"
+#include "eveio/EventLoop.hpp"
 #include "eveio/Channel.hpp"
 #include "eveio/Exception.hpp"
 #include "eveio/Poller.hpp"
@@ -30,9 +30,9 @@
 
 using namespace eveio;
 
-static thread_local eveio::Eventloop *LoopInCurrentThread = nullptr;
+static thread_local eveio::EventLoop *LoopInCurrentThread = nullptr;
 
-eveio::Eventloop::Eventloop()
+eveio::EventLoop::EventLoop()
     : poller(new Poller),
       isLooping(false),
       isQuit(false),
@@ -63,14 +63,14 @@ eveio::Eventloop::Eventloop()
   wakeupChannel->EnableReading();
 }
 
-eveio::Eventloop::~Eventloop() noexcept {
+eveio::EventLoop::~EventLoop() noexcept {
   wakeupChannel->DisableAll();
   wakeupChannel->Unregist();
   assert(LoopInCurrentThread == this);
   LoopInCurrentThread = nullptr;
 }
 
-void eveio::Eventloop::Loop() noexcept {
+void eveio::EventLoop::Loop() noexcept {
   assert(!isLooping.load(std::memory_order_relaxed));
   if (isLooping.exchange(true, std::memory_order_relaxed)) {
     return;
@@ -99,14 +99,14 @@ void eveio::Eventloop::Loop() noexcept {
   isLooping.store(false, std::memory_order_relaxed);
 }
 
-void eveio::Eventloop::Quit() noexcept {
+void eveio::EventLoop::Quit() noexcept {
   isQuit.store(true, std::memory_order_relaxed);
   if (!IsInLoopThread()) {
     WakeUp();
   }
 }
 
-void eveio::Eventloop::DoPendingFunc() noexcept {
+void eveio::EventLoop::DoPendingFunc() noexcept {
   std::vector<std::function<void()>> pendingFuncCopy;
   {
     std::lock_guard<std::mutex> lock(pendingFuncMutex);
@@ -118,16 +118,16 @@ void eveio::Eventloop::DoPendingFunc() noexcept {
   }
 }
 
-Eventloop *eveio::Eventloop::GetCurrentThreadLoop() noexcept {
+EventLoop *eveio::EventLoop::GetCurrentThreadLoop() noexcept {
   return LoopInCurrentThread;
 }
 
-void eveio::Eventloop::UpdateChannel(Channel *channel) const {
+void eveio::EventLoop::UpdateChannel(Channel *channel) const {
   assert(channel->GetOwnerLoop() == this);
   poller->UpdateChannel(channel);
 }
 
-void eveio::Eventloop::UnregistChannel(Channel *channel) const {
+void eveio::EventLoop::UnregistChannel(Channel *channel) const {
   assert(channel->GetOwnerLoop() == this);
   poller->UnregistChannel(channel);
 }

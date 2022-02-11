@@ -31,7 +31,7 @@
 
 namespace eveio {
 
-class Eventloop;
+class EventLoop;
 
 class Channel {
 public:
@@ -40,7 +40,7 @@ public:
       std::function<void(std::chrono::system_clock::time_point)>;
 
 private:
-  Eventloop *const loop;
+  EventLoop *const loop;
   const handle_t handle;
 
   bool isTied;
@@ -59,7 +59,7 @@ private:
   EventCallback closeCallback;
 
 public:
-  Channel(Eventloop &loop, handle_t fd) noexcept;
+  Channel(EventLoop &loop, handle_t fd) noexcept;
   ~Channel() noexcept;
 
   Channel(const Channel &) = delete;
@@ -153,7 +153,7 @@ public:
     Update();
   }
 
-  Eventloop *GetOwnerLoop() const noexcept { return loop; }
+  EventLoop *GetOwnerLoop() const noexcept { return loop; }
 
   /// For internal usage.
   /// Handle all pending events.

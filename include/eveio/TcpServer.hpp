@@ -31,10 +31,10 @@
 
 namespace eveio {
 
-class Eventloop;
+class EventLoop;
 
 class Acceptor {
-  Eventloop *const loop;
+  EventLoop *const loop;
   bool isListening;
   TcpSocket acceptSocket;
   Channel channel;
@@ -43,7 +43,7 @@ class Acceptor {
 public:
   /// Throw SystemErrorException if failed to create socket or failed to config
   /// reuseport.
-  Acceptor(Eventloop &ownerLoop, const InetAddress &listenAddr, bool reusePort);
+  Acceptor(EventLoop &ownerLoop, const InetAddress &listenAddr, bool reusePort);
   ~Acceptor() noexcept;
 
   Acceptor(const Acceptor &) = delete;
@@ -68,11 +68,11 @@ public:
   void Quit() noexcept;
 };
 
-class EventloopThreadPool;
+class EventLoopThreadPool;
 
 class TcpServer {
-  Eventloop *const acceptorLoop;
-  std::shared_ptr<EventloopThreadPool> ioContext;
+  EventLoop *const acceptorLoop;
+  std::shared_ptr<EventLoopThreadPool> ioContext;
   std::shared_ptr<Acceptor> acceptor;
   std::atomic_bool isStarted;
 
@@ -81,10 +81,10 @@ class TcpServer {
   TcpWriteCompleteCallback writeCompleteCallback;
 
 public:
-  TcpServer(Eventloop &loop, const InetAddress &listenAddr);
-  TcpServer(Eventloop &loop,
+  TcpServer(EventLoop &loop, const InetAddress &listenAddr);
+  TcpServer(EventLoop &loop,
             const InetAddress &listenAddr,
-            std::shared_ptr<EventloopThreadPool> threadPool);
+            std::shared_ptr<EventLoopThreadPool> threadPool);
   ~TcpServer() noexcept;
 
   TcpServer(const TcpServer &) = delete;
@@ -96,11 +96,11 @@ public:
   /// Throw SystemErrorException if failed to get local addr.
   InetAddress GetLocalAddress() const { return acceptor->GetLocalAddress(); }
 
-  std::shared_ptr<EventloopThreadPool> GetIOContext() const noexcept {
+  std::shared_ptr<EventLoopThreadPool> GetIOContext() const noexcept {
     return ioContext;
   }
 
-  Eventloop *GetAcceptorLoop() const noexcept { return acceptorLoop; }
+  EventLoop *GetAcceptorLoop() const noexcept { return acceptorLoop; }
 
   void SetConnectionCallback(TcpConnectionCallback cb) noexcept {
     connectionCallback = cb;

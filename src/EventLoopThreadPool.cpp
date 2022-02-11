@@ -18,18 +18,18 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#include "eveio/EventloopThreadPool.hpp"
-#include "eveio/Eventloop.hpp"
-#include "eveio/EventloopThread.hpp"
+#include "eveio/EventLoopThreadPool.hpp"
+#include "eveio/EventLoop.hpp"
+#include "eveio/EventLoopThread.hpp"
 
 #include <atomic>
 
 using namespace eveio;
 
-eveio::EventloopThreadPool::EventloopThreadPool(size_t threadNum) noexcept
+eveio::EventLoopThreadPool::EventLoopThreadPool(size_t threadNum) noexcept
     : isStarted(false), numThread(threadNum), nextLoop(0), workers(), loops() {}
 
-Eventloop *eveio::EventloopThreadPool::GetNextLoop() noexcept {
+EventLoop *eveio::EventLoopThreadPool::GetNextLoop() noexcept {
   if (isStarted.load(std::memory_order_relaxed)) {
     return loops[nextLoop.fetch_add(1, std::memory_order_relaxed) %
                  loops.size()];
@@ -37,14 +37,14 @@ Eventloop *eveio::EventloopThreadPool::GetNextLoop() noexcept {
   return nullptr;
 }
 
-void eveio::EventloopThreadPool::Start() noexcept {
+void eveio::EventLoopThreadPool::Start() noexcept {
   if (isStarted.exchange(true, std::memory_order_relaxed)) {
     return;
   }
 
   assert(numThread > 0);
   for (size_t i = 0; i < numThread; ++i) {
-    workers.emplace_back(new EventloopThread);
+    workers.emplace_back(new EventLoopThread);
     loops.emplace_back(workers.back()->StartLoop());
   }
 }

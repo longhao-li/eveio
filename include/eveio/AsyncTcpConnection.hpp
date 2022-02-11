@@ -90,7 +90,7 @@ public:
 };
 
 class AsyncTcpConnection;
-class Eventloop;
+class EventLoop;
 
 using TcpMessageCallback =
     std::function<void(AsyncTcpConnection *,
@@ -102,7 +102,7 @@ using TcpConnectionCallback = std::function<void(AsyncTcpConnection *)>;
 class AsyncTcpConnection
     : public std::enable_shared_from_this<AsyncTcpConnection> {
   std::shared_ptr<AsyncTcpConnection> guardThis;
-  Eventloop *const loop;
+  EventLoop *const loop;
 
   TcpConnection connection;
   Channel channel;
@@ -116,7 +116,7 @@ class AsyncTcpConnection
   std::atomic_bool isQuit;
 
 public:
-  AsyncTcpConnection(Eventloop &ownerLoop, TcpConnection &&conn);
+  AsyncTcpConnection(EventLoop &ownerLoop, TcpConnection &&conn);
   ~AsyncTcpConnection() noexcept;
 
   AsyncTcpConnection(const AsyncTcpConnection &) noexcept = delete;
@@ -136,13 +136,13 @@ public:
     writeCompleteCallback = std::move(cb);
   }
 
-  Eventloop *GetLoop() const noexcept { return loop; }
+  EventLoop *GetLoop() const noexcept { return loop; }
 
   /// This method will require system socket API.
   /// Might be inefficient.
-  InetAddress GetPeerAddress() const noexcept {
-    return connection.GetPeerAddress();
-  }
+  ///
+  /// Throw SystemErrorException if any error occurs.
+  InetAddress GetPeerAddress() const { return connection.GetPeerAddress(); }
 
   bool ShutdownWrite() const noexcept { return connection.ShutdownWrite(); }
   bool IsClosed() const noexcept { return connection.IsClosed(); }

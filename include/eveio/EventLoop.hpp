@@ -35,7 +35,7 @@ namespace eveio {
 class Channel;
 class Poller;
 
-class Eventloop {
+class EventLoop {
   using ChannelList = std::vector<Channel *>;
 
   std::unique_ptr<Poller> poller;
@@ -55,14 +55,14 @@ class Eventloop {
 public:
   /// Poller may throw SystemErrorException.
   /// Throw RuntimeErrorException if current thread already has one loop.
-  Eventloop();
-  ~Eventloop() noexcept;
+  EventLoop();
+  ~EventLoop() noexcept;
 
-  Eventloop(const Eventloop &) = delete;
-  Eventloop &operator=(const Eventloop &) = delete;
+  EventLoop(const EventLoop &) = delete;
+  EventLoop &operator=(const EventLoop &) = delete;
 
-  Eventloop(Eventloop &&) = delete;
-  Eventloop &operator=(Eventloop &&) = delete;
+  EventLoop(EventLoop &&) = delete;
+  EventLoop &operator=(EventLoop &&) = delete;
 
   /// Thread safe method.
   /// Safe to call for multi-times.
@@ -114,7 +114,7 @@ public:
   /// Called by channel.
   void UnregistChannel(Channel *channel) const;
 
-  static Eventloop *GetCurrentThreadLoop() noexcept;
+  static EventLoop *GetCurrentThreadLoop() noexcept;
 
 private:
   void DoPendingFunc() noexcept;

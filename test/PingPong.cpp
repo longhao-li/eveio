@@ -30,7 +30,7 @@ class EchoServer {
   TcpServer server;
 
 public:
-  EchoServer(Eventloop &loop, const InetAddress &addr) : server(loop, addr) {
+  EchoServer(EventLoop &loop, const InetAddress &addr) : server(loop, addr) {
     server.SetMessageCallback(
         [this](AsyncTcpConnection *conn,
                AsyncTcpConnectionBuffer &input,
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   int port = atoi(argv[1]);
 
   try {
-    Eventloop loop;
+    EventLoop loop;
     InetAddress addr = InetAddress::Ipv4Any(static_cast<uint16_t>(port));
     EchoServer server(loop, addr);
     loop.Loop();

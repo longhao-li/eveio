@@ -20,7 +20,7 @@
 
 #include "eveio/Channel.hpp"
 #include "eveio/Event.hpp"
-#include "eveio/Eventloop.hpp"
+#include "eveio/EventLoop.hpp"
 #include "eveio/Exception.hpp"
 #include "eveio/Poller.hpp"
 
@@ -28,7 +28,7 @@
 
 using namespace eveio;
 
-eveio::Channel::Channel(Eventloop &ownerLoop, handle_t fd) noexcept
+eveio::Channel::Channel(EventLoop &ownerLoop, handle_t fd) noexcept
     : loop(&ownerLoop),
       handle(fd),
       isTied(false),

@@ -19,8 +19,8 @@
 /// IN THE SOFTWARE.
 
 #include "eveio/TcpServer.hpp"
-#include "eveio/Eventloop.hpp"
-#include "eveio/EventloopThreadPool.hpp"
+#include "eveio/EventLoop.hpp"
+#include "eveio/EventLoopThreadPool.hpp"
 #include "eveio/Exception.hpp"
 #include "eveio/InetAddress.hpp"
 
@@ -31,7 +31,7 @@
 
 using namespace eveio;
 
-eveio::Acceptor::Acceptor(Eventloop &ownerLoop,
+eveio::Acceptor::Acceptor(EventLoop &ownerLoop,
                           const InetAddress &listenAddr,
                           bool reusePort)
     : loop(&ownerLoop),
@@ -91,9 +91,9 @@ void eveio::Acceptor::Quit() noexcept {
   isListening = false;
 }
 
-eveio::TcpServer::TcpServer(Eventloop &loop, const InetAddress &listenAddr)
+eveio::TcpServer::TcpServer(EventLoop &loop, const InetAddress &listenAddr)
     : acceptorLoop(&loop),
-      ioContext(std::make_shared<EventloopThreadPool>(
+      ioContext(std::make_shared<EventLoopThreadPool>(
           std::max<size_t>(std::thread::hardware_concurrency(), 1) - 1)),
       acceptor(std::make_shared<Acceptor>(loop, listenAddr, true)),
       isStarted(false),
@@ -124,9 +124,9 @@ eveio::TcpServer::TcpServer(Eventloop &loop, const InetAddress &listenAddr)
   });
 }
 
-eveio::TcpServer::TcpServer(Eventloop &loop,
+eveio::TcpServer::TcpServer(EventLoop &loop,
                             const InetAddress &listenAddr,
-                            std::shared_ptr<EventloopThreadPool> threadPool)
+                            std::shared_ptr<EventLoopThreadPool> threadPool)
     : acceptorLoop(&loop),
       ioContext(std::move(threadPool)),
       acceptor(std::make_shared<Acceptor>(loop, listenAddr, true)),
