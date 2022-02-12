@@ -1,13 +1,3 @@
-# Rely on llhttp to parse http
-message("Fetching llhttp from GitHub...")
-include(FetchContent)
-FetchContent_Declare(
-  llhttp
-  GIT_REPOSITORY "https://github.com/nodejs/llhttp.git"
-  GIT_TAG "release"
-)
-FetchContent_MakeAvailable(llhttp)
-
 aux_source_directory(. EVEIO_SRC)
 
 # shared library configuration
@@ -21,12 +11,6 @@ target_link_libraries(
   eveio
   PUBLIC
   Threads::Threads
-)
-
-target_link_libraries(
-  eveio
-  PRIVATE
-  llhttp::llhttp
 )
 
 set_target_properties(
@@ -48,12 +32,6 @@ target_link_libraries(
   eveio_static
   PUBLIC
   Threads::Threads
-)
-
-target_link_libraries(
-  eveio_static
-  PRIVATE
-  llhttp::llhttp
 )
 
 set_target_properties(

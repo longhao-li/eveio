@@ -61,8 +61,6 @@ public:
     numThread.store(num, std::memory_order_relaxed);
   }
 
-  void AddLoop(EventLoop *loop) noexcept { loops.push_back(loop); }
-
   void Start() noexcept;
 
   template <class InitFn>

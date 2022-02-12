@@ -93,14 +93,12 @@ void eveio::Acceptor::Quit() noexcept {
 
 eveio::TcpServer::TcpServer(EventLoop &loop, const InetAddress &listenAddr)
     : acceptorLoop(&loop),
-      ioContext(std::make_shared<EventLoopThreadPool>(
-          std::max<size_t>(std::thread::hardware_concurrency(), 1) - 1)),
+      ioContext(),
       acceptor(std::make_shared<Acceptor>(loop, listenAddr, true)),
       isStarted(false),
       connectionCallback(),
       messageCallback(),
       writeCompleteCallback() {
-  ioContext->AddLoop(acceptorLoop);
   acceptor->SetNewConnectionCallback([this](TcpConnection &&conn) {
     try {
       auto asyncConn = std::make_shared<AsyncTcpConnection>(
