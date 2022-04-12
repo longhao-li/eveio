@@ -1,10 +1,16 @@
+---
 Language: Cpp
+IndentWidth: 4
+AccessModifierOffset: -4
 BasedOnStyle: LLVM
 AllowShortIfStatementsOnASingleLine: false
 BinPackArguments: false
-BinPackParameters: false
+# BinPackParameters: false
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 AllowShortFunctionsOnASingleLine: true
+PointerAlignment: Right
 AlwaysBreakTemplateDeclarations: true
 IndentPPDirectives: AfterHash
 AlignOperands: Align

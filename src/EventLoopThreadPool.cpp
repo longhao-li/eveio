@@ -1,50 +1,35 @@
-/// Copyright (c) 2021 Li Longhao
-///
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to
-/// deal in the Software without restriction, including without limitation the
-/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-/// sell copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-/// IN THE SOFTWARE.
-
-#include "eveio/EventLoopThreadPool.hpp"
-#include "eveio/EventLoop.hpp"
-#include "eveio/EventLoopThread.hpp"
-
-#include <atomic>
+#include "eveio/EventLoopThreadPool.h"
+#include "eveio/EventLoop.h"
 
 using namespace eveio;
 
-eveio::EventLoopThreadPool::EventLoopThreadPool(size_t threadNum) noexcept
-    : isStarted(false), numThread(threadNum), nextLoop(0), workers(), loops() {}
+eveio::EventLoopThreadPool::EventLoopThreadPool(size_t num_thread) noexcept
+    : m_is_started(false),
+      m_num_threads(num_thread),
+      m_next_loop(0),
+      m_workers(),
+      m_loops() {}
 
 EventLoop *eveio::EventLoopThreadPool::GetNextLoop() noexcept {
-  if (isStarted.load(std::memory_order_relaxed)) {
-    return loops[nextLoop.fetch_add(1, std::memory_order_relaxed) %
-                 loops.size()];
-  }
-  return nullptr;
+    if (m_is_started.load(std::memory_order_relaxed)) {
+        return m_loops[m_next_loop.fetch_add(1, std::memory_order_relaxed) %
+                       m_loops.size()];
+    }
+    return nullptr;
 }
 
 void eveio::EventLoopThreadPool::Start() noexcept {
-  if (isStarted.exchange(true, std::memory_order_relaxed)) {
-    return;
-  }
+    if (m_is_started.exchange(true, std::memory_order_relaxed))
+        return;
 
-  assert(numThread > 0);
-  for (size_t i = 0; i < numThread; ++i) {
-    workers.emplace_back(new EventLoopThread);
-    loops.emplace_back(workers.back()->StartLoop());
-  }
+    size_t num_threads =
+        std::max(m_num_threads.load(std::memory_order_relaxed), size_t(1));
+
+    m_workers.reserve(num_threads);
+    m_loops.reserve(num_threads);
+
+    for (size_t i = 0; i < num_threads; ++i) {
+        m_workers.emplace_back(new EventLoopThread);
+        m_loops.emplace_back(m_workers.back()->StartLoop());
+    }
 }

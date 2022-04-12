@@ -1,62 +1,37 @@
-/// Copyright (c) 2021 Li Longhao
-///
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to
-/// deal in the Software without restriction, including without limitation the
-/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-/// sell copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-/// IN THE SOFTWARE.
-
-#include "eveio/EventLoopThread.hpp"
-#include "eveio/EventLoop.hpp"
-
-#include <cassert>
-#include <mutex>
+#include "eveio/EventLoopThread.h"
+#include "eveio/EventLoop.h"
 
 using namespace eveio;
 
 eveio::EventLoopThread::EventLoopThread() noexcept
-    : loop(nullptr), loopThread(), loopMutex(), loopCond(), initCallback() {}
+    : m_loop(nullptr), m_loop_thread(), m_loop_mutex(), m_loop_cond() {}
 
-eveio::EventLoopThread::~EventLoopThread() noexcept {
-  if (loop != nullptr) {
-    loop->Quit();
-    loopThread.join();
-  }
+eveio::EventLoopThread::~EventLoopThread() {
+    if (m_loop != nullptr) {
+        m_loop->Quit();
+        m_loop_thread.join();
+    }
 }
 
 EventLoop *eveio::EventLoopThread::StartLoop() noexcept {
-  loopThread = std::thread([this]() { this->Task(); });
-  std::unique_lock<std::mutex> guard(loopMutex);
-  loopCond.wait(guard, [this]() -> bool { return this->loop != nullptr; });
-  return loop;
+    m_loop_thread = std::thread([this]() { this->Task(); });
+    std::unique_lock<std::mutex> guard(m_loop_mutex);
+    m_loop_cond.wait(guard,
+                     [this]() -> bool { return this->m_loop != nullptr; });
+    return m_loop;
 }
 
 void eveio::EventLoopThread::Task() noexcept {
-  EventLoop taskLoop;
-  if (initCallback) {
-    initCallback(&taskLoop);
-  }
+    EventLoop task_loop;
 
-  {
-    std::lock_guard<std::mutex> guard(loopMutex);
-    loop = &taskLoop;
-    loopCond.notify_one();
-  }
+    {
+        std::lock_guard<std::mutex> guard(m_loop_mutex);
+        m_loop = &task_loop;
+        m_loop_cond.notify_one();
+    }
 
-  taskLoop.Loop();
+    task_loop.Loop();
 
-  std::lock_guard<std::mutex> guard(loopMutex);
-  loop = nullptr;
+    std::lock_guard<std::mutex> guard(m_loop_mutex);
+    m_loop = nullptr;
 }

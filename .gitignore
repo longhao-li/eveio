@@ -1,10 +1,13 @@
-# Xmake cache
+# build cache
 build/
 
 # MacOS Cache
 .DS_Store
 
 # vscode
-.vscode
-.cache
+.vscode/
+.cache/
+
+# clangd temp file
 compile_commands.json
+compile_flags.txt
