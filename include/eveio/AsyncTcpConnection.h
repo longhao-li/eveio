@@ -104,6 +104,13 @@ public:
 
     void Destroy() noexcept;
 
+    /// Use this to detect if current connection is destroying.
+    /// DO NOT pend current connection at event loop func queue if this
+    /// connection is destroying.
+    bool IsDestroying() const noexcept {
+        return m_is_quit.load(std::memory_order_relaxed);
+    }
+
 private:
     void HandleRead() noexcept;
     void SendInLoop() noexcept;
